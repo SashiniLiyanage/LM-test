@@ -1,0 +1,9 @@
+storage/licenses
+storage/processingPacks
+storage/packs
+
+config.toml
+
+target
+TraversePack/target
+TraversePack/modules

@@ -1,0 +1,19 @@
+.searchForm {
+    border-radius: 30px;
+    border: 2px solid #9a9d9d;
+    width: 60%;
+    margin: 0 auto;
+    text-align: right;
+}
+
+.searchBar {
+    padding-top: 1%;
+    padding-bottom: 3%;
+    align-content: center;
+}
+
+
+.textBox {
+    width: 90%;
+    padding-left: 5%;
+}
