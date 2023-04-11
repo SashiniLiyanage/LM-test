@@ -4,6 +4,7 @@ import ballerina/http;
 import ballerinax/azure_storage_service.blobs as azure_blobs;
 import ballerina/jballerina.java;
 import ballerina/regex;
+import ballerina/io;
 
 // database configurations
 configurable string DBhost = ?;
@@ -79,7 +80,7 @@ final azure_blobs:ManagementClient managementClient = check new (
 //     }
 // }
 
-service /LicenseManager on new http:Listener(9096) {
+service / on new http:Listener(9096) {
 
     resource function get getLicense() returns Success|InternalServerError {
 
@@ -325,77 +326,77 @@ service /LicenseManager on new http:Listener(9096) {
     
     }
 
-    resource function get checkPack/[string packName]() returns Success|BadRequest|InternalServerError|error {
+    // resource function get checkPack/[string packName]() returns Success|BadRequest|InternalServerError|error {
 
-        string? nameVar = java:toString(getName(java:fromString( packName)));
-        string? versionVar = java:toString(getVersion(java:fromString( packName)));
+    //     string? nameVar = java:toString(getName(java:fromString( packName)));
+    //     string? versionVar = java:toString(getVersion(java:fromString( packName)));
         
-        string _name = "";
-        if (nameVar is string) {
-            _name = nameVar;
-        }
-        string _version = "";
-        if (versionVar is string) {
-            _version = versionVar;
-        }
+    //     string _name = "";
+    //     if (nameVar is string) {
+    //         _name = nameVar;
+    //     }
+    //     string _version = "";
+    //     if (versionVar is string) {
+    //         _version = versionVar;
+    //     }
         
-        string FileName = _name + "-" + _version + ".zip";
-        boolean? exists = checkPack(FileName);
-        error? container = checkContainer("container-1");
+    //     string FileName = _name + "-" + _version + ".zip";
+    //     boolean? exists = checkPack(FileName);
+    //     error? container = checkContainer("container-1");
 
-        if (exists is boolean && !(container is error)) {
+    //     if (exists is boolean && !(container is error)) {
 
-            if (exists) {
-                Success res = {body:{
-                    exists: true
-                }};
-                return res;
+    //         if (exists) {
+    //             Success res = {body:{
+    //                 exists: true
+    //             }};
+    //             return res;
 
-            } else {
-                string sasToken = java:toString(generateSas(java:fromString(ACCOUNT_NAME),java:fromString(ACCESS_KEY_OR_SAS))) ?: "";
-                string randomName = getRandompackName();
+    //         } else {
+    //             string sasToken = java:toString(generateSas(java:fromString(ACCOUNT_NAME),java:fromString(ACCESS_KEY_OR_SAS))) ?: "";
+    //             string randomName = getRandompackName();
                 
-                Success res = {body: {
-                    exists: false,
-                    accountName: ACCOUNT_NAME,
-                    sasToken: sasToken,
-                    randomName: randomName,
-                    fileName: FileName,
-                    containerName: "container-1"
-                }};
-                return res;
-            }
+    //             Success res = {body: {
+    //                 exists: false,
+    //                 accountName: ACCOUNT_NAME,
+    //                 sasToken: sasToken,
+    //                 randomName: randomName,
+    //                 fileName: FileName,
+    //                 containerName: "container-1"
+    //             }};
+    //             return res;
+    //         }
 
-        }else{
-            InternalServerError res ={ body:"Error: An internal error occurred"};
-            return res;
-        }
+    //     }else{
+    //         InternalServerError res ={ body:"Error: An internal error occurred"};
+    //         return res;
+    //     }
 
-    }
+    // }
 
-    resource function post receiver(@http:Payload json payload) returns Success|BadRequest|InternalServerError|error {
+    // resource function post receiver(@http:Payload json payload) returns Success|BadRequest|InternalServerError|error {
 
-        json| error randomName = payload.randomName;
-        json| error name = payload.name;
+    //     json| error randomName = payload.randomName;
+    //     json| error name = payload.name;
 
-        if(randomName is string && name is string){
+    //     if(randomName is string && name is string){
 
-            boolean updated = addPackStatus(name, randomName);
+    //         boolean updated = addPackStatus(name, randomName);
 
-            if (updated) {
-                Success res = {body: "uploaded successfully"};
-                return res;
-            }else{
-                InternalServerError res ={ body: "Error: An internal error occurred"};
-                return res;
-            }
+    //         if (updated) {
+    //             Success res = {body: "uploaded successfully"};
+    //             return res;
+    //         }else{
+    //             InternalServerError res ={ body: "Error: An internal error occurred"};
+    //             return res;
+    //         }
 
-        }else{
-            BadRequest res = { body: "Payload is not in correct format"};
-            return res;
-        }
+    //     }else{
+    //         BadRequest res = { body: "Payload is not in correct format"};
+    //         return res;
+    //     }
             
-    }
+    // }
 
     resource function get getPackstatus() returns Success|BadRequest|InternalServerError {
 
@@ -558,6 +559,65 @@ service /LicenseManager on new http:Listener(9096) {
 
         return;
         
+    }
+
+    resource function get checkPack/[string packName]() returns Success|BadRequest|InternalServerError|error {
+
+        string _name = java:toString(getName(java:fromString( packName))) ?: "";
+        string _version = java:toString(getVersion(java:fromString( packName))) ?: "";
+        
+        string FileName = _name + "-" + _version + ".zip";
+        boolean? exists = checkPack(FileName);
+        error? container = checkContainer("container-1");
+
+        if (exists is boolean && !(container is error)) {
+
+            if (exists) {
+                Success res = {body:{
+                    exists: true
+                }};
+                return res;
+
+            } else {
+                Success res = {body:{
+                    exists: false
+                }};
+                return res;
+            }
+
+        }else{
+            InternalServerError res ={ body:"Error: An internal error occurred"};
+            return res;
+        }
+
+    }
+
+    resource function post receiver/[string packName](http:Request request) returns Success|BadRequest|InternalServerError|error {
+
+        string _name = java:toString(getName(java:fromString( packName))) ?: "";
+        string _version = java:toString(getVersion(java:fromString( packName))) ?: "";
+        
+        string fileName = _name + "-" + _version + ".zip";
+        string randomName = getRandompackName();
+
+        
+        stream<byte[], io:Error?>|error streamer = check request.getByteStream();
+
+        if(streamer is stream<byte[], error?>){
+            boolean saved = uploadPack(streamer, randomName);
+
+            if(saved && addPackStatus(fileName, randomName)){
+               Success res = {body: "uploaded successfully"};
+                return res;
+            }else{
+                InternalServerError res ={ body: "Error: An internal error occurred"};
+                return res;
+            }
+        }else{
+            BadRequest res = { body: "Payload is not in correct format"};
+            return res;
+        }
+            
     }
     
 }

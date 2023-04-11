@@ -10,24 +10,21 @@ servers:
     port:
       default: "9096"
 paths:
-  /LicenseManager/getLicense:
+  /getLicense:
     get:
-      operationId: getLicensemanagerGetlicense
+      operationId: getGetlicense
       responses:
         "200":
           description: Ok
         "500":
           description: InternalServerError
-  /LicenseManager/updateLicense:
+  /updateLicense:
     post:
-      operationId: postLicensemanagerUpdatelicense
+      operationId: postUpdatelicense
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
@@ -35,16 +32,13 @@ paths:
           description: BadRequest
         "500":
           description: InternalServerError
-  /LicenseManager/addLicense:
+  /addLicense:
     post:
-      operationId: postLicensemanagerAddlicense
+      operationId: postAddlicense
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
@@ -52,9 +46,9 @@ paths:
           description: BadRequest
         "500":
           description: InternalServerError
-  /LicenseManager/checkLicense/{licName}/{licKey}:
+  /checkLicense/{licName}/{licKey}:
     get:
-      operationId: getLicensemanagerChecklicenseLicnameLickey
+      operationId: getChecklicenseLicnameLickey
       parameters:
       - name: licName
         in: path
@@ -77,16 +71,13 @@ paths:
             text/plain:
               schema:
                 type: string
-  /LicenseManager/requestLicense:
+  /requestLicense:
     post:
-      operationId: postLicensemanagerRequestlicense
+      operationId: postRequestlicense
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
@@ -94,16 +85,13 @@ paths:
           description: BadRequest
         "500":
           description: InternalServerError
-  /LicenseManager/approveLicense:
+  /approveLicense:
     post:
-      operationId: postLicensemanagerApprovelicense
+      operationId: postApprovelicense
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
@@ -111,16 +99,13 @@ paths:
           description: BadRequest
         "500":
           description: InternalServerError
-  /LicenseManager/rejectLicense:
+  /rejectLicense:
     post:
-      operationId: postLicensemanagerRejectlicense
+      operationId: postRejectlicense
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
@@ -128,25 +113,25 @@ paths:
           description: BadRequest
         "500":
           description: InternalServerError
-  /LicenseManager/getLicenseRequests:
+  /getLicenseRequests:
     get:
-      operationId: getLicensemanagerGetlicenserequests
+      operationId: getGetlicenserequests
       responses:
         "200":
           description: Ok
         "500":
           description: InternalServerError
-  /LicenseManager/getLibrary:
+  /getLibrary:
     get:
-      operationId: getLicensemanagerGetlibrary
+      operationId: getGetlibrary
       responses:
         "200":
           description: Ok
         "500":
           description: InternalServerError
-  /LicenseManager/getLibraries:
+  /getLibraries:
     get:
-      operationId: getLicensemanagerGetlibraries
+      operationId: getGetlibraries
       parameters:
       - name: page
         in: query
@@ -164,16 +149,13 @@ paths:
           description: Ok
         "500":
           description: InternalServerError
-  /LicenseManager/updateLibrary:
+  /updateLibrary:
     post:
-      operationId: postLicensemanagerUpdatelibrary
+      operationId: postUpdatelibrary
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
@@ -185,16 +167,13 @@ paths:
                 type: string
         "400":
           description: BadRequest
-  /LicenseManager/addLibrary:
+  /addLibrary:
     post:
-      operationId: postLicensemanagerAddlibrary
+      operationId: postAddlibrary
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
@@ -206,9 +185,43 @@ paths:
             text/plain:
               schema:
                 type: string
-  /LicenseManager/checkPack/{packName}:
+  /getPackstatus:
     get:
-      operationId: getLicensemanagerCheckpackPackname
+      operationId: getGetpackstatus
+      responses:
+        "200":
+          description: Ok
+        "400":
+          description: BadRequest
+        "500":
+          description: InternalServerError
+  /getBlobData:
+    get:
+      operationId: getGetblobdata
+      responses:
+        "200":
+          description: Ok
+        "400":
+          description: BadRequest
+        "500":
+          description: InternalServerError
+  /processAllPacks:
+    get:
+      operationId: getProcessallpacks
+      responses:
+        "200":
+          description: Ok
+        "400":
+          description: BadRequest
+        "500":
+          description: Found unexpected output
+          content:
+            text/plain:
+              schema:
+                type: string
+  /deletePack/{packName}:
+    post:
+      operationId: postDeletepackPackname
       parameters:
       - name: packName
         in: path
@@ -226,84 +239,9 @@ paths:
             text/plain:
               schema:
                 type: string
-  /LicenseManager/receiver:
-    post:
-      operationId: postLicensemanagerReceiver
-      requestBody:
-        content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
-      responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
-        "500":
-          description: Found unexpected output
-          content:
-            text/plain:
-              schema:
-                type: string
-  /LicenseManager/getPackstatus:
+  /getDownloadingText/{fileName}:
     get:
-      operationId: getLicensemanagerGetpackstatus
-      responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
-        "500":
-          description: InternalServerError
-  /LicenseManager/getBlobData:
-    get:
-      operationId: getLicensemanagerGetblobdata
-      responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
-        "500":
-          description: InternalServerError
-  /LicenseManager/processAllPacks:
-    get:
-      operationId: getLicensemanagerProcessallpacks
-      responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
-        "500":
-          description: Found unexpected output
-          content:
-            text/plain:
-              schema:
-                type: string
-  /LicenseManager/deletePack/{packName}:
-    post:
-      operationId: postLicensemanagerDeletepackPackname
-      parameters:
-      - name: packName
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
-        "500":
-          description: Found unexpected output
-          content:
-            text/plain:
-              schema:
-                type: string
-  /LicenseManager/getDownloadingText/{fileName}:
-    get:
-      operationId: getLicensemanagerGetdownloadingtextFilename
+      operationId: getGetdownloadingtextFilename
       parameters:
       - name: fileName
         in: path
@@ -319,9 +257,9 @@ paths:
             '*/*':
               schema:
                 description: Any type of entity body
-  /LicenseManager/getBlobFile/{fileName}:
+  /getBlobFile/{fileName}:
     get:
-      operationId: getLicensemanagerGetblobfileFilename
+      operationId: getGetblobfileFilename
       parameters:
       - name: fileName
         in: path
@@ -337,9 +275,9 @@ paths:
             '*/*':
               schema:
                 description: Any type of entity body
-  /LicenseManager/gettempdata/{packName}:
+  /gettempdata/{packName}:
     get:
-      operationId: getLicensemanagerGettempdataPackname
+      operationId: getGettempdataPackname
       parameters:
       - name: packName
         in: path
@@ -349,15 +287,15 @@ paths:
       responses:
         "200":
           description: Ok
-  /LicenseManager/getallLibraryRequests:
+  /getallLibraryRequests:
     get:
-      operationId: getLicensemanagerGetalllibraryrequests
+      operationId: getGetalllibraryrequests
       responses:
         "200":
           description: Ok
-  /LicenseManager/addLibraryRequest/{packName}:
+  /addLibraryRequest/{packName}:
     post:
-      operationId: postLicensemanagerAddlibraryrequestPackname
+      operationId: postAddlibraryrequestPackname
       parameters:
       - name: packName
         in: path
@@ -366,11 +304,8 @@ paths:
           type: string
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
@@ -378,9 +313,9 @@ paths:
           description: InternalServerError
         "400":
           description: BadRequest
-  /LicenseManager/addLibraryLicense/{packName}:
+  /addLibraryLicense/{packName}:
     post:
-      operationId: postLicensemanagerAddlibrarylicensePackname
+      operationId: postAddlibrarylicensePackname
       parameters:
       - name: packName
         in: path
@@ -389,20 +324,62 @@ paths:
           type: string
       requestBody:
         content:
-          ? "application/{\r\n        allowOrigins: [https://localhost:3000],\r\n\
-            \        allowCredentials: true,\r\n        allowHeaders: [*],\r\n   \
-            \     allowMethods: [GET,POST,PUT,OPTIONS,DELETE,PATCH,HEAD],\r\n    \
-            \    exposeHeaders: [Access-Control-Allow-Origin]\r\n    }+json"
-          : schema: {}
+          application/json:
+            schema: {}
       responses:
         "200":
           description: Ok
         "500":
           description: InternalServerError
-  /LicenseManager/deleteData:
+  /deleteData:
     get:
-      operationId: getLicensemanagerDeletedata
+      operationId: getDeletedata
       responses:
+        "500":
+          description: Found unexpected output
+          content:
+            text/plain:
+              schema:
+                type: string
+  /checkPack/{packName}:
+    get:
+      operationId: getCheckpackPackname
+      parameters:
+      - name: packName
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Ok
+        "400":
+          description: BadRequest
+        "500":
+          description: Found unexpected output
+          content:
+            text/plain:
+              schema:
+                type: string
+  /receiver/{packName}:
+    post:
+      operationId: postReceiverPackname
+      parameters:
+      - name: packName
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              description: Any type of entity body
+      responses:
+        "200":
+          description: Ok
+        "400":
+          description: BadRequest
         "500":
           description: Found unexpected output
           content:

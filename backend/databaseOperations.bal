@@ -304,18 +304,9 @@ isolated function addNewLibrary(string libName, string libType, json[] licenses)
 
     string _filename = libName;
     string _type = libType;
-    string _name = "";
-    string _version = "";
 
-    string? nameVar = java:toString(getName(java:fromString(_filename)));
-    string? versionVar = java:toString(getVersion(java:fromString(_filename)));
-     
-    if (nameVar is string) {
-        _name = nameVar;
-    }
-    if (versionVar is string) {
-        _version = versionVar;
-    }
+    string _name = java:toString(getName(java:fromString(_filename))) ?: "";
+    string _version = java:toString(getVersion(java:fromString(_filename))) ?: "";
     
     int[] licenseID = [];
     foreach json license in licenses {
