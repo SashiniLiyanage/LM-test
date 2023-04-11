@@ -357,33 +357,32 @@ isolated function getBlockedLicenses() returns int[] {
     return licenseID;
 }
 
-isolated function uploadPack(stream<byte[], io:Error?> streamer, string randomName) returns string{
+isolated function uploadPack(stream<byte[], io:Error?> streamer, string randomName) returns boolean{
     
     string filePath = FILE_PATH+"/"+randomName+".zip";
     io:Error? saveTempFile = io:fileWriteBlocksFromStream( filePath, streamer);
     
     if(saveTempFile is io:Error){
         log:printError("File saving failed");
-        return saveTempFile.toString();
+        return false;
     }
 
     if(checkContainer("container-1") is error){
         log:printError("container creation failed");
-        return "container creation failed";
+        return false;
     }
 
     error? putBlobResult = blobClient->uploadLargeBlob("container-1", randomName+".zip", filePath);
 
     if(putBlobResult is error){
         log:printError("Failed to save the pack");
-        return "Failed to save the pack";
+        return false;
     }
 
     error? removeTempFile = file:remove(filePath);
     if(removeTempFile is error){
         log:printError("Error in deleting temp file");
-        return "Error in deleting temp file";
     }
 
-    return "true";
+    return true;
 }

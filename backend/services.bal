@@ -592,7 +592,7 @@ service / on new http:Listener(9096) {
 
     }
 
-    resource function post receiver/[string packName](http:Request request) returns Success|BadRequest|InternalServerError{
+    resource function post receiver/[string packName](http:Request request) returns Success|BadRequest|InternalServerError {
 
         string _name = java:toString(getName(java:fromString( packName))) ?: "";
         string _version = java:toString(getVersion(java:fromString( packName))) ?: "";
@@ -604,18 +604,15 @@ service / on new http:Listener(9096) {
         stream<byte[], io:Error?>|error streamer = request.getByteStream();
 
         if(streamer is stream<byte[], error?>){
-            // boolean saved = uploadPack(streamer, randomName);
-            string saved = uploadPack(streamer, randomName);
-            Success res = {body: saved};
-            return res;
-            //     return res;
-            // if(saved && addPackStatus(fileName, randomName)){
-            //    Success res = {body: "uploaded successfully"};
-            //     return res;
-            // }else{
-            //     InternalServerError res ={ body: "Error: An internal error occurred"};
-            //     return res;
-            // }
+            boolean saved = uploadPack(streamer, randomName);
+
+            if(saved && addPackStatus(fileName, randomName)){
+               Success res = {body: "uploaded successfully"};
+                return res;
+            }else{
+                InternalServerError res ={ body: "Error: An internal error occurred"};
+                return res;
+            }
         }else{
             BadRequest res = { body: "Payload is not in correct format"};
             return res;
