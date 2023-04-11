@@ -364,7 +364,7 @@ isolated function uploadPack(stream<byte[], io:Error?> streamer, string randomNa
     
     if(saveTempFile is io:Error){
         log:printError("File saving failed");
-        return "File saving failed";
+        return saveTempFile.toString();
     }
 
     if(checkContainer("container-1") is error){
