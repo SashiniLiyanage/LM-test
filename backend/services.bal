@@ -592,7 +592,7 @@ service / on new http:Listener(9096) {
 
     }
 
-    resource function post receiver/[string packName](http:Request request) returns Success|BadRequest|InternalServerError|error {
+    resource function post receiver/[string packName](http:Request request) returns Success|BadRequest|InternalServerError{
 
         string _name = java:toString(getName(java:fromString( packName))) ?: "";
         string _version = java:toString(getVersion(java:fromString( packName))) ?: "";
@@ -601,7 +601,7 @@ service / on new http:Listener(9096) {
         string randomName = getRandompackName();
 
         
-        stream<byte[], io:Error?>|error streamer = check request.getByteStream();
+        stream<byte[], io:Error?>|error streamer = request.getByteStream();
 
         if(streamer is stream<byte[], error?>){
             boolean saved = uploadPack(streamer, randomName);
