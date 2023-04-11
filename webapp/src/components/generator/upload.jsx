@@ -24,8 +24,10 @@ import CloudUploadIcon from '@material-ui/icons/CloudUpload';
 import { BallBeat } from 'react-pure-loaders';
 import { Divider, Header, Icon } from 'semantic-ui-react'
 import {BlobServiceClient} from '@azure/storage-blob';
+import UserContext from '../../UserContext';
 
 export default class PackUpload extends Component {
+    static contextType = UserContext
     constructor(props) {
         super(props);
         this.state = {
@@ -55,7 +57,7 @@ export default class PackUpload extends Component {
         this.setState({process : true})
         axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/processAllPacks',{
           headers:{
-            "API-Key": process.env.REACT_APP_API_KEY
+            "Authorization": `Bearer ${this.context.idToken}`
           }
         }).then(res=>{
           console.log("Done process")
@@ -69,25 +71,12 @@ export default class PackUpload extends Component {
       }
       window.location.reload();
     }
-    uploadPack = async (sasToken, accountName, fileName, randomName, containerName) => {
-    this.toggleLoading();
-
-      try{
-        const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net/?${sasToken}`);
-        const containerClient = blobServiceClient.getContainerClient(containerName);
-        const blobClient = containerClient.getBlockBlobClient(randomName + ".zip");
-        const options = { blobHTTPHeaders: { blobContentType: this.state.selectedFile.type }, 
-          onProgress: (ev) => this.setState({progress : (ev.loadedBytes/this.state.selectedFile.size)}) 
-        }
-        // upload file
-        await blobClient.uploadData(this.state.selectedFile, options);
-
-        axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/receiver/',{
-          randomName: randomName,
-          name: fileName
-        },{
+    uploadPack = () => {
+      this.toggleLoading();
+      
+        axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/receiver/'+this.state.selectedFile.name,this.state.selectedFile,{
           headers:{
-            "API-Key": process.env.REACT_APP_API_KEY
+            "Authorization": `Bearer ${this.context.idToken}`
           }
         })
         .then(res=>{
@@ -101,23 +90,57 @@ export default class PackUpload extends Component {
           console.log(error);
           alert("Error in uploading! Try again...")
         })
-
-      } catch (error) {
-        console.error(error);
-        alert("Error in uploading! Try again...");
-      }
     }
+    // uploadPack = async (sasToken, accountName, fileName, randomName, containerName) => {
+    // this.toggleLoading();
+
+    //   try{
+    //     const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net/?${sasToken}`);
+    //     const containerClient = blobServiceClient.getContainerClient(containerName);
+    //     const blobClient = containerClient.getBlockBlobClient(randomName + ".zip");
+    //     const options = { blobHTTPHeaders: { blobContentType: this.state.selectedFile.type }, 
+    //       onProgress: (ev) => this.setState({progress : (ev.loadedBytes/this.state.selectedFile.size)}) 
+    //     }
+    //     // upload file
+    //     await blobClient.uploadData(this.state.selectedFile, options);
+
+    //     axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/receiver/',{
+    //       randomName: randomName,
+    //       name: fileName
+    //     },{
+    //       headers:{
+    //         "Authorization": `Bearer ${this.context.idToken}`
+    //       }
+    //     })
+    //     .then(res=>{
+    //       this.toggleLoading()
+    //       alert("Successfully uploaded!!! Processing will start in a minute...")
+    //       this.setState({process:false})
+    //       this.processPack()
+    //     })
+    //     .catch(error=>{
+    //       this.toggleLoading()
+    //       console.log(error);
+    //       alert("Error in uploading! Try again...")
+    //     })
+
+    //   } catch (error) {
+    //     console.error(error);
+    //     alert("Error in uploading! Try again...");
+    //   }
+    // }
     
     onClickHandler = () => {
       this.setState({upload : false})
       axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/checkPack/' + this.state.selectedFile.name,{
         headers:{
-          "API-Key": process.env.REACT_APP_API_KEY
+          "Authorization": `Bearer ${this.context.idToken}`
         }
       })
       .then(res=>{
         if (!res.data.exists){
-          this.uploadPack(res.data.sasToken, res.data.accountName, res.data.fileName, res.data.randomName,  res.data.containerName);
+          // this.uploadPack(res.data.sasToken, res.data.accountName, res.data.fileName, res.data.randomName,  res.data.containerName);
+          this.uploadPack();
         } else {
           alert("Pack is already under process!!!")
         }

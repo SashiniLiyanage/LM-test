@@ -31,6 +31,7 @@ import { emphasize } from '@material-ui/core/styles/colorManipulator';
 import Grid from '@material-ui/core/Grid';
 import { ValidatorForm, TextValidator } from 'react-material-ui-form-validator';
 import axios from 'axios';
+import UserContext from '../../UserContext';
 
 const styles = theme => ({
   root: {
@@ -183,6 +184,7 @@ const components = {
 };
 
 class UpdateLibrary extends React.Component {
+  static contextType = UserContext
   constructor(props) {
     super(props);
     this.state = {
@@ -209,7 +211,7 @@ class UpdateLibrary extends React.Component {
     axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/updateLibrary', this.state,
     {
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
       }
     }
     )
@@ -228,7 +230,7 @@ class UpdateLibrary extends React.Component {
   componentDidMount() {
     fetch(process.env.REACT_APP_BE_URL + '/LicenseManager/getLicense', {
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
       }
     })
       .then(res => res.json())

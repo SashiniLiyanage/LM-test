@@ -27,8 +27,10 @@ import { Divider,Header,Icon } from 'semantic-ui-react';
 import './../../styles/paging.css';
 import ErrorUpdate from './errorUpdate';
 import fileDownload from 'js-file-download';
+import UserContext from '../../UserContext';
 
 export default class PackStatus extends React.Component {
+  static contextType = UserContext
   constructor() {
     super();
     this.state = {
@@ -41,7 +43,7 @@ export default class PackStatus extends React.Component {
   componentDidMount() {
     axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/getPackstatus', {
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
       }
     })
       .then(res => {
@@ -56,7 +58,7 @@ export default class PackStatus extends React.Component {
     this.setState({ packstatus })
     axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/deletePack/' + item.PACK_NAME,{},{
     headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+      "Authorization": `Bearer ${this.context.idToken}`
     }
     }).then(res => {
       console.log("Successfully deleted " + item.PACK_NAME)
@@ -71,7 +73,7 @@ export default class PackStatus extends React.Component {
     var licenseFile = pack.PACK_NAME.replace('.zip', '.txt')
     axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/getDownloadingText/' + pack.PACK_NAME, {
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
       },
       responseType: "blob"
     })
@@ -88,7 +90,7 @@ export default class PackStatus extends React.Component {
     axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/processAllPacks', 
     {
         headers:{
-            "API-Key": process.env.REACT_APP_API_KEY
+          "Authorization": `Bearer ${this.context.idToken}`
         }
     }).then(res => {
         console.log("Done process")

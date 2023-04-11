@@ -24,8 +24,10 @@ import MenuItem from '@material-ui/core/MenuItem';
 import TextField from '@material-ui/core/TextField';
 import axios from 'axios';
 import Popup from "reactjs-popup";
+import UserContext from '../../UserContext';
 
 export default class RequestLicense extends Component {
+    static contextType = UserContext
     constructor(props) {
         super(props);
         this.state = {
@@ -65,7 +67,7 @@ export default class RequestLicense extends Component {
         }else {
             axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/requestLicense',toBesent, {
                 headers:{
-                    "API-Key": process.env.REACT_APP_API_KEY
+                    "Authorization": `Bearer ${this.context.idToken}`
                 }
             })
             .then(response => {
@@ -87,7 +89,7 @@ export default class RequestLicense extends Component {
         }else {
             axios.get(process.env.REACT_APP_BE_URL + `/LicenseManager/checkLicense/${this.state.licName}/${this.state.licKey}`, {
                 headers:{
-                    "API-Key": process.env.REACT_APP_API_KEY
+                    "Authorization": `Bearer ${this.context.idToken}`
                 }
             })
             .then(response => {

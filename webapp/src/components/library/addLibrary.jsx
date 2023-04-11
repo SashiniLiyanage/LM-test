@@ -30,6 +30,7 @@ import CancelIcon from '@material-ui/icons/Cancel';
 import Select from 'react-select';
 import { emphasize } from '@material-ui/core/styles/colorManipulator';
 import { withStyles } from '@material-ui/core/styles';
+import UserContext from '../../UserContext';
 
 const styles = theme => ({
   root: {
@@ -181,6 +182,7 @@ const components = {
 };
 
 class AddLibrary extends Component {
+  static contextType = UserContext
   constructor(props) {
     super(props);
     this.state = {
@@ -210,7 +212,7 @@ class AddLibrary extends Component {
       axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/addLibrary', this.state,
       {
         headers:{
-          "API-Key": process.env.REACT_APP_API_KEY
+          "Authorization": `Bearer ${this.context.idToken}`
         }
       }
       )
@@ -229,7 +231,7 @@ class AddLibrary extends Component {
   fetchLicenses = () => {
     fetch(process.env.REACT_APP_BE_URL + '/LicenseManager/getLicense',{
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
     }
     })
       .then(res => res.json())

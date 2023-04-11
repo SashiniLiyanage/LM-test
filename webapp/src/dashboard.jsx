@@ -16,7 +16,8 @@
  * under the License.
  */
 import React, { useEffect, useState} from 'react';
-import { CssBaseline } from '@material-ui/core';
+import { CssBaseline, Paper } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import {Route,NavLink,HashRouter} from "react-router-dom";
 import Manager from './components/generator/manager';
@@ -30,29 +31,51 @@ import './styles/index.css';
 import UserContext from './UserContext';
 import { useAuthContext } from "@asgardeo/auth-react";
 import BlobManager from './components/blobs/blobManager';
+import { BallBeat } from 'react-pure-loaders';
+
+const useStyles = makeStyles(theme => ({
+    layout: {
+      width: 'auto',
+      marginLeft: theme.spacing(2),
+      marginRight: theme.spacing(2),
+      [theme.breakpoints.up(600 + theme.spacing(2) * 2)]: {
+        width: 950,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+      },
+    },
+    paper: {
+      marginTop: theme.spacing(3),
+      marginBottom: theme.spacing(3),
+      padding: theme.spacing(2),
+      [theme.breakpoints.up(600 + theme.spacing(3) * 2)]: {
+        marginTop: theme.spacing(6),
+        marginBottom: theme.spacing(6),
+        padding: theme.spacing(3),
+      },
+    },
+}));
 
 const Dashboard =()=>{
 
-    const value = { admin: true };
-    const [info, setInfo] = useState({});
-    const {state, signOut, getBasicUserInfo, getDecodedIDToken} = useAuthContext();
+    const [value, setValue] = useState({});
+    const [loading, setLoading] = useState(true);
+    const {state, getIDToken} = useAuthContext();
+    const classes = useStyles();
 
     useEffect(() => {
         if(!state.isAuthenticated) return;
 
         (async () => {
-            const basicUserInfo = await getBasicUserInfo();
-            setInfo(basicUserInfo)  
-            console.log(basicUserInfo)    
-        })().catch((e)=>{
-            console.log(e)
-        })
+            setLoading(true);
+            const idToken =  await getIDToken();
+            setValue({ admin: true, idToken: idToken})
 
-        getDecodedIDToken().then((decodedIDToken) => {
-            console.log(decodedIDToken);
-        }).catch((error) => {
-            // Handle the error
-        })
+        })().catch((e)=>{
+          console.log(e)
+        }).finally(()=>{
+            setLoading(false);
+        })   
   
     }, [state]);
 
@@ -64,6 +87,17 @@ const Dashboard =()=>{
                 <AppHeader/>
             </AppBar>
            
+            {loading? 
+            <main className={classes.layout}>
+            <Paper className={classes.paper}>
+            <div>
+                Loading...
+                <BallBeat color={'#123abc'} loading={loading} />
+            </div>     
+            </Paper>
+            </main>
+            
+            :
             <HashRouter>
                 <div className="header black">
                     <ul>
@@ -88,6 +122,7 @@ const Dashboard =()=>{
                     <Route path="/blobmanager" component={BlobManager}/>
                 </div>
             </HashRouter>
+            }
         </React.Fragment>
         </UserContext.Provider>
     );

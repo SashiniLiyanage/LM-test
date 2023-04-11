@@ -21,6 +21,7 @@ import { withStyles, Button, Grid, TextField, MenuItem, Typography, Divider } fr
 import { emphasize } from '@material-ui/core/styles/colorManipulator';
 import { ValidatorForm, TextValidator } from 'react-material-ui-form-validator';
 import axios from 'axios';
+import UserContext from '../../UserContext';
 
 const styles = theme => ({
   root: {
@@ -69,6 +70,7 @@ const styles = theme => ({
 
 
 class AddLicense extends React.Component {
+  static contextType = UserContext
   constructor(props) {
     super(props);
     this.state = {
@@ -85,7 +87,7 @@ class AddLicense extends React.Component {
   approve = () => {
     axios.get(process.env.REACT_APP_BE_URL + `/LicenseManager/checkLicense/${this.state.licName}/${this.state.licKey}`, {
       headers:{
-          "API-Key": process.env.REACT_APP_API_KEY
+          "Authorization": `Bearer ${this.context.idToken}`
       }
     })
     .then(response => {
@@ -103,7 +105,7 @@ class AddLicense extends React.Component {
   addNewLicense = () => {
     axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/approveLicense', this.state,{
     headers:{
-      "API-Key": process.env.REACT_APP_API_KEY
+      "Authorization": `Bearer ${this.context.idToken}`
     }
     })
       .then(response => {
@@ -120,7 +122,7 @@ class AddLicense extends React.Component {
   reject = () => {
      axios.post(process.env.REACT_APP_BE_URL + '/LicenseManager/rejectLicense', this.state,{
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
       }
      })
        .then(response => {

@@ -24,6 +24,7 @@ import Close from '@material-ui/icons/Close';
 import { Divider,Header} from 'semantic-ui-react'
 import 'react-super-responsive-table/dist/SuperResponsiveTableStyle.css';
 import UpdateLibrary from './updateLibrary';
+import UserContext from '../../UserContext';
 
 const styles = theme => ({
     root: {
@@ -70,6 +71,7 @@ const styles = theme => ({
 });
 
 class ErrorUpdate extends Component {
+    static contextType = UserContext
     constructor(props) {
         super(props);
         this.state = {
@@ -99,7 +101,7 @@ class ErrorUpdate extends Component {
         axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/gettempdata/' +
         this.state.packName, {
             headers:{
-                "API-Key": process.env.REACT_APP_API_KEY
+                "Authorization": `Bearer ${this.context.idToken}`
             }
         }).then(res => {
             this.setState({ open: false })
@@ -117,7 +119,7 @@ class ErrorUpdate extends Component {
     componentDidMount = () => {
         axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/getLicense', {
         headers:{
-            "API-Key": process.env.REACT_APP_API_KEY
+            "Authorization": `Bearer ${this.context.idToken}`
         }
         }).then(res => {
             this.setState({ licenses: res.data })

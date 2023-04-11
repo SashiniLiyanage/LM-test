@@ -40,7 +40,7 @@ export default class LicenseTable extends Component {
     this.setState({ loading: true })
     axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/getLicense', {
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
       }
     }).then(res => {
       this.setState({ licenses: res.data, loading: false})

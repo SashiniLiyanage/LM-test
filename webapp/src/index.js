@@ -8,10 +8,7 @@ const config = {
   signOutRedirectURL: `https://${window.location.host}`,
   clientID: process.env.REACT_APP_ASGARDEO_CLIENT_ID,
   baseUrl: process.env.REACT_APP_ASGARDEO_BASE_URL,
-  scope: ["openid", "groups", "profile", "email",
-    "urn:wso2digitaloperationsuser:licensemanager:generate-license-file", 
-    "urn:wso2digitaloperationsuser:licensemanager:add-update-jar-details"
-  ],
+  scope: ["openid", "profile", "email"],
   resourceServerURLs: [process.env.REACT_APP_BE_URL],
 };
 

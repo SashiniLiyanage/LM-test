@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import React, {useState} from 'react';
+import React from 'react';
 import logo from '../assets/images/logo-inverse.svg';
 import { Avatar, MenuItem, Divider, Menu} from '@material-ui/core';
 import { useAuthContext } from "@asgardeo/auth-react";
@@ -70,7 +70,7 @@ const AppHeader = ()=> {
                 {
                     state.isAuthenticated &&
                     <div style={{marginRight: '20px'}}> 
-                        <Avatar aria-controls="customized-menu" aria-haspopup="true" src={"info.picture"} onClick={handleClick}>{state.email? state.email[0].toUpperCase(): ""}</Avatar>        
+                        <Avatar aria-controls="customized-menu" aria-haspopup="true" onClick={handleClick}>{state.email? state.email[0].toUpperCase(): ""}</Avatar>        
                         <StyledMenu anchorEl={anchorEl} keepMounted open={Boolean(anchorEl)} onClose={handleClose}>
                             <MenuItem disabled>{state.email}</MenuItem>
                             <Divider></Divider>

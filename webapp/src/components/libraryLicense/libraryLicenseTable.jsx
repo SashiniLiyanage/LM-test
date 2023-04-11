@@ -40,7 +40,7 @@ export default class LibraryLicenseTable extends Component {
     this.setState({ loading: true })
     axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/getallLibraryRequests', {
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
       }
     }).then(res => {
       this.setState({ libraries: res.data,loading: false })

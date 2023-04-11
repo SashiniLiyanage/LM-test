@@ -46,7 +46,7 @@ export default class LibraryTable extends Component {
     this.setState({ loading: true });
 		axios.get(process.env.REACT_APP_BE_URL + '/LicenseManager/getLibraries?page=' + this.state.nextPageToFetch + '&query=' + this.state.keyword, {
       headers:{
-        "API-Key": process.env.REACT_APP_API_KEY
+        "Authorization": `Bearer ${this.context.idToken}`
       }
     }).then(res => {
       let temp = []
