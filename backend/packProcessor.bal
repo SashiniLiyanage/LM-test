@@ -4,7 +4,7 @@ import ballerina/io;
 import ballerina/log;
 import ballerina/sql;
 import ballerina/http;
-// import ballerina/file;
+import ballerina/file;
 
 isolated function createRandomUUID() returns handle = @java:Method {
     name: "randomUUID",
@@ -357,32 +357,33 @@ isolated function getBlockedLicenses() returns int[] {
     return licenseID;
 }
 
-isolated function uploadPack(stream<byte[], io:Error?> streamer, string randomName) returns boolean{
+isolated function uploadPack(stream<byte[], io:Error?> streamer, string randomName) returns string{
     
-    // string filePath = FILE_PATH+"/"+randomName+".zip";
-    // io:Error? saveTempFile = io:fileWriteBlocksFromStream( filePath, streamer);
+    string filePath = FILE_PATH+"/"+randomName+".zip";
+    io:Error? saveTempFile = io:fileWriteBlocksFromStream( filePath, streamer);
     
-    // if(saveTempFile is io:Error){
-    //     log:printError("File saving failed");
-    //     return false;
-    // }
+    if(saveTempFile is io:Error){
+        log:printError("File saving failed");
+        return "File saving failed";
+    }
 
-    // if(checkContainer("container-1") is error){
-    //     log:printError("container creation failed");
-    //     return false;
-    // }
+    if(checkContainer("container-1") is error){
+        log:printError("container creation failed");
+        return "container creation failed";
+    }
 
-    // error? putBlobResult = blobClient->uploadLargeBlob("container-1", randomName+".zip", filePath);
+    error? putBlobResult = blobClient->uploadLargeBlob("container-1", randomName+".zip", filePath);
 
-    // if(putBlobResult is error){
-    //     log:printError("Failed to save the pack");
-    //     return false;
-    // }
+    if(putBlobResult is error){
+        log:printError("Failed to save the pack");
+        return "Failed to save the pack";
+    }
 
-    // error? removeTempFile = file:remove(filePath);
-    // if(removeTempFile is error){
-    //     log:printError("Error in deleting temp file");
-    // }
+    error? removeTempFile = file:remove(filePath);
+    if(removeTempFile is error){
+        log:printError("Error in deleting temp file");
+        return "Error in deleting temp file";
+    }
 
-    return true;
+    return "true";
 }
