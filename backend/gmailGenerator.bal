@@ -5,10 +5,10 @@ import ballerina/log;
 // get template for email
 isolated function getTemplate(json dataSet) returns string {
     string|error tabel = generateTable(dataSet);
-    if(tabel is string){
+    if tabel is string {
         string mail_template = html_header + template_header + tabel + template_footer + html_footer;
         return mail_template;
-    }else{
+    } else {
         return "error while generating the tabel";
     }
     
@@ -17,7 +17,7 @@ isolated function getTemplate(json dataSet) returns string {
 // generate table for libraries without license
 isolated function generateTableContent(json[] data, string heading) returns string|error {
     string tableData = "";
-    if (data.length() !== 0) {
+    if data.length() !== 0 {
         tableData = tableData + string `<div id = "title"><b>` + heading +
         "</b></div><table id=\"openprs\"><tr><th style=\"width:300px\">" +
         "Library Name</th><th style=\"width:300px\">Library Version</th></tr>";
@@ -38,24 +38,26 @@ isolated function generateTable(json data) returns string|error {
     string heading;
     string productName = (check data.packName).toString();
     string productVersion = (check data.packVersion).toString();
-    string summaryTable = string `<div id = "subhead"> Product Name : ` + productName + "&& Product Version : " + productVersion + "</div>";
+    string summaryTable = string `<div id = "subhead"> Product Name : ` + productName 
+        + "&& Product Version : " + productVersion + "</div>";
     
     if empty is json[] {
         heading = "Libraries without licenses";
         string| error tableContent = generateTableContent(empty, heading);
-        if(tableContent is string){
+        if tableContent is string {
             summaryTable = summaryTable + tableContent;
-        }else{
+        } else {
             log:printError("Error in generating table content");
         }
     }
 
     if blocked is json[] {
-        heading = "There are libraries with X category licenses. These libraries have to be removed before generating license file";
+        heading = "There are libraries with X category licenses. " 
+            + "These libraries have to be removed before generating license file";
         string| error tableContent = generateTableContent(blocked, heading);
-        if(tableContent is string){
+        if tableContent is string {
             summaryTable = summaryTable + tableContent;
-        }else{
+        } else {
             log:printError("Error in generating table content");
         }
         

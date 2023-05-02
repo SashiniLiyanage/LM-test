@@ -3,26 +3,20 @@ import ballerina/jballerina.java;
 import ballerina/io;
 import ballerina/log;
 import ballerina/sql;
-import ballerina/http;
-import ballerina/file;
 
 isolated function createRandomUUID() returns handle = @java:Method {
     name: "randomUUID",
     'class: "java.util.UUID"
 } external;
 
-isolated  function getJsonString(handle product, handle sourcepath, handle destinationpath, handle fileName) returns handle = @java:Method {
+isolated  function getJsonString(handle product, handle sourcepath, handle destinationpath, handle fileName)
+    returns handle = @java:Method {
     name: "getJsonString",
     'class: "org.wso2.internal.apps.license.manager.TraversePack"
 } external;
 
 isolated function getSubString(handle word) returns handle = @java:Method {
     name: "getSubString",
-    'class: "org.wso2.internal.apps.license.manager.TraversePack"
-} external;
-
-isolated function gnerateDownloadLink(handle accountName, handle accountKey, handle blobName, handle containerName) returns handle = @java:Method {
-    name: "gnerateDownloadLink",
     'class: "org.wso2.internal.apps.license.manager.TraversePack"
 } external;
 
@@ -34,88 +28,154 @@ isolated function getRandompackName() returns string {
     return "000";
 }
 
-// process all the uploaded packs
-isolated function processAllPack() returns boolean {
-    string packName;
-    string randomName;
+// process the uploaded packs
+isolated function processPack(string packName, string randomName) returns boolean {
     json|error data;
-    boolean proceed = true;
 
-    while (proceed) {
-        ProcessingPack[]|error nextPack = getNextPack();
+    _ = updateStatus(packName, "Extracting the pack", PROCESSING_STATE);
+    log:printInfo("Extracting the pack");
 
-        if nextPack is error {
-            log:printError("Error in getting next packs", nextPack);
-            break;
-        }
-        if nextPack.length() == 0 {
-            log:printInfo("All the packs are processed");
-            break;
-        }
-            
-        foreach ProcessingPack pack in nextPack {
+    var jsonVar = getJsonString(java:fromString(randomName), java:fromString(FILE_PATH),
+        java:fromString(PROCESSING_PATH), java:fromString(packName));
 
-            packName = pack.PACK_NAME;
-            randomName = pack.PACK_RANDOMNAME;
+    string jsonString = java:toString(jsonVar) ?: "";
 
-            _ = updateStatus(packName, "Extracting the pack", 2);
-            log:printInfo("Extracting the pack");
+    data = getDataJson(randomName, packName, jsonString);
+    _ = updateStatus(packName, "Pack is extracted", PROCESSING_STATE);
+    log:printInfo("Pack is extracted");
 
-            data = getDataJson(randomName,packName);
-            _ = updateStatus(packName, "Pack is extracted", 2);
-            log:printInfo("Pack is extracted");
+    if data is error {
+        _ = updateStatus(packName, "Failed in Traversing Pack", FAILED_STATE);
+        log:printError("Failed in Traversing Pack", data);
 
-            if(data is error){
-                _ = updateStatus(packName, "Failed in Traversing Pack", 0);
-                log:printError("Failed in Traversing Pack", data);
+    } else if data.status == 200 {
+        _ = updateStatus(packName, "Updating database", PROCESSING_STATE);
+        log:printInfo("Updating database");
+        
+        json|error updated = updateDatabase(data);
+        _ = updateStatus(packName, "Database is updated", PROCESSING_STATE);
+        log:printInfo("Database is updated");
 
-            }else if (data.status == 200) {
+        if (updated is json && updated.status == 200) {
 
-                _ = updateStatus(packName, "Updating database", 2);
-                log:printInfo("Updating database");
-                
-                json|error updated = updateDatabase(data);
-                _ = updateStatus(packName, "Database is updated", 2);
-                log:printInfo("Database is updated");
+            _ = updateStatus(packName, "Generating License file", PROCESSING_STATE);
+            log:printInfo("Generating License file");
 
-                if (updated is json && updated.status == 200) {
+            error? response = generateLicense(data);
 
-                    _ = updateStatus(packName, "Generating License file", 2);
-                    log:printInfo("Generating License file");
-
-                    error? response = generateLicense(data);
-
-                    if (response is error) {
-                        _ = updateStatus(packName, "License Generation Failed", 0);
-                        log:printError("License Generation Failed", response);
-                    } else {
-                        _ = updateStatus(packName, "License File Generated", 1);
-                        log:printInfo("License File Generated");
-                    }
-
-                } else {
-                    _ = updateStatus(packName, "Database Updation Failed", 0);
-                    log:printInfo("Database Updation Failed");
-                }
-                
+            if response is error {
+                _ = updateStatus(packName, "License Generation Failed", FAILED_STATE);
+                log:printError("License Generation Failed", response);
             } else {
-                json | error withoutLicense = data.empty;
-                json | error blockedLicense = data.blocked;
-
-                if (withoutLicense is json[] && blockedLicense is json[]) {
-                    if (withoutLicense.length() > 0 || blockedLicense.length() > 0) {
-                        _ = updateStatus(packName, "Libraries without Licenses or with X category licenses", 3);
-                        log:printInfo("Libraries without Licenses or with X category licenses");
-                    } else {
-                        _ = updateStatus(packName, "Failed in Traversing Pack", 0);
-                        log:printInfo("Failed in Traversing Pack");
-                    }
-                } else {
-                    _ = updateStatus(packName, "Failed in Traversing Pack", 0);
-                    log:printInfo("Failed in Traversing Pack");
-                }
+                _ = updateStatus(packName, "License File Generated", SUCCESS_STATE);
+                log:printInfo("License File Generated");
             }
+
+        } else {
+            _ = updateStatus(packName, "Database Updation Failed", FAILED_STATE);
+            log:printInfo("Database Updation Failed");
         }
+        
+    } else {
+        json|error withoutLicense = data.empty;
+        json|error blockedLicense = data.blocked;
+            
+        if (withoutLicense is json[] && blockedLicense is json[] 
+            && (withoutLicense.length() > 0 || blockedLicense.length() > 0)) {
+                                
+            error? saved = savePackData(packName, jsonString);
+
+            if saved is error {
+                _ = updateStatus(packName, "Failed in Traversing Pack", FAILED_STATE);
+                log:printInfo("Failed in saving temporary pack data");
+            } else {
+                _ = updateStatus(packName, "Libraries without Licenses or with X category licenses", BLOCKED_STATE);
+                log:printInfo("Libraries without Licenses or with X category licenses");
+            }
+
+        } else {
+            _ = updateStatus(packName, "Failed in Traversing Pack", FAILED_STATE);
+            log:printInfo("Failed in Traversing Pack");
+        }
+    }
+
+    return true;
+}
+
+// Regenerate the license file after updating libraries without licenses
+isolated function regenerateLicenseFile(string packName) returns boolean {
+    
+    TemporaryPack[]|error libraries = getTemporaryPackData(packName);
+
+    string _name = java:toString(getName(java:fromString(packName))) ?: "";
+    string _version = java:toString(getVersion(java:fromString(packName))) ?: "";
+
+    string jsonString = "{\"packName\":\"" + _name + "\",\"packVersion\":\"" + _version + "\",\"library\":";
+    string jsonlibrary = "[";
+
+    if libraries is error {
+        _ = updateStatus(packName, "Failed in Traversing Pack", FAILED_STATE);
+        log:printInfo("Failed in getting temporary pack data");
+        return false;
+    } else {
+        foreach TemporaryPack library in libraries {
+            jsonlibrary += "{\"libName\":\"" + library.LIB_NAME + "\","
+            + "\"libVersion\":\"" + library.LIB_VERSION + "\"," 
+            + "\"libFilename\":\"" + library.LIB_FILENAME + "\","
+            + "\"libType\":\"" + library.LIB_TYPE + "\"," 
+            + "\"libLicense\":" + library.LIB_LICENSE +"},";
+        }
+    }
+
+    if jsonlibrary.length() == 1 {
+        jsonlibrary = "[]";
+    } else {
+        jsonlibrary = jsonlibrary.substring(0, jsonlibrary.length() - 1) + "]";
+    }            
+
+    jsonString += jsonlibrary + "}";
+
+    string randomName = getPackRandomName(packName);
+    json|error data = getDataJson(randomName, packName, jsonString);
+
+    _ = updateStatus(packName, "Pack is extracted", PROCESSING_STATE);
+    log:printInfo("Pack is extracted");
+
+    if data is error {
+        _ = updateStatus(packName, "Failed in Traversing Pack", FAILED_STATE);
+        log:printError("Failed in Traversing Pack", data);
+
+    }else if data.status == 200 {
+        _ = updateStatus(packName, "Updating database", PROCESSING_STATE);
+        log:printInfo("Updating database");
+        
+        json|error updated = updateDatabase(data);
+        _ = updateStatus(packName, "Database is updated", PROCESSING_STATE);
+        log:printInfo("Database is updated");
+
+        if (updated is json && updated.status == 200) {
+
+            _ = updateStatus(packName, "Generating License file", PROCESSING_STATE);
+            log:printInfo("Generating License file");
+
+            error? response = generateLicense(data);
+
+            if response is error {
+                _ = updateStatus(packName, "License Generation Failed", FAILED_STATE);
+                log:printError("License Generation Failed", response);
+            } else {
+                _ = updateStatus(packName, "License File Generated", SUCCESS_STATE);
+                log:printInfo("License File Generated");
+            }
+
+        } else {
+            _ = updateStatus(packName, "Database Updation Failed", FAILED_STATE);
+            log:printInfo("Database Updation Failed");
+        }
+        
+    } else {
+        _ = updateStatus(packName, "Failed in Traversing Pack", FAILED_STATE);
+        log:printInfo("Failed in regenerating license file");  
     }
 
     return true;
@@ -129,83 +189,57 @@ isolated function checkContainer(string containerName) returns error?{
     azure_blobs:Container[] containers = result.containerList;
 
     foreach azure_blobs:Container item in containers {
-        if(item.Name === containerName){
+        if item.Name === containerName {
             exists = true;
         }
     }
 
-    if(!exists){
+    if !exists {
         _ = check managementClient->createContainer(containerName);
     }
 
     return;
 }
 
-// download pack from azure blob
-isolated  function downloadFile(string blobName, string containerName) returns error?{
-    string url = java:toString(gnerateDownloadLink(java:fromString(ACCOUNT_NAME),java:fromString(ACCESS_KEY_OR_SAS),java:fromString(blobName),java:fromString("container-1"))) ?: "";
-
-    http:Client httpEP = check new (url);
-    http:Response resp = check httpEP->get("");
-    stream<byte[], io:Error?> byteStream = check resp.getByteStream();
-    _ = check io:fileWriteBlocksFromStream(FILE_PATH + "/" + blobName, byteStream);
-
-}
-
-isolated function getDataJson(string randomName, string packName) returns json|error {
-
-
-    log:printInfo("Downloading the file... ");
-    error? file = downloadFile(randomName +".zip", "container-1" );
-
-    if(file is error){
-        log:printError("Download failed ", file);
-        return file;
-    }else{
-        log:printInfo("File Downloaded sucessfully");
-    }
+// Get json data from extracted pack
+isolated function getDataJson(string randomName, string packName, string jsonString) returns json|error {
 
     json jsonEmpty = {};
-    var jsonVar = getJsonString(java:fromString(randomName),java:fromString(FILE_PATH),java:fromString(PROCESSING_PATH), java:fromString(packName));
-    string? jsonString = java:toString(jsonVar);
-
-    if jsonString is string {
-        if(jsonString === "Exception"){
-            error err = error("Error happended in getJsonString");
-            return err;
-        }else{
-            io:StringReader stringReader = new (jsonString, encoding = "UTF-8");
-            json | error Json = stringReader.readJson();
-            if Json is json {
-                jsonEmpty = check UpdateLicenseID(Json);
-            } else {
-                log:printError("Error in converting to json", Json);
-            }
-        }
+    
+    if jsonString === "Exception" {
+        error err = error("Error happended in getJsonString");
+        return err;
     } else {
-        log:printError("Error: returned jsonString is not in string format", jsonString);
+        io:StringReader stringReader = new (jsonString, encoding = "UTF-8");
+        json|error Json = stringReader.readJson();
+        if Json is json {
+            jsonEmpty = check UpdateLicenseID(Json);
+        } else {
+            log:printError("Error in converting to json", Json);
+        }
     }
 
     return checkLicense(jsonEmpty);
 }
 
+// update license ids for libraries
 isolated function UpdateLicenseID(json DataJson) returns json|error {
     string productName = (check DataJson.packName).toString();
     string productVersion = (check DataJson.packVersion).toString();
-    json | error libraries = DataJson.library;
+    json|error libraries = DataJson.library;
     json[] newLibrary = [];
     int index = 0;
 
-    if (libraries is json[]) {
+    if libraries is json[] {
         foreach  json libraryData in libraries {
-            json | error lib_license = libraryData.libLicense;
+            json|error lib_license = libraryData.libLicense;
             string lib_name = (check libraryData.libName).toString();
             string lib_version = (check libraryData.libVersion).toString();
             string lib_filename = (check libraryData.libFilename).toString();
             string lib_type = (check libraryData.libType).toString();
 
             json[] ids = [];
-            if (lib_license is json[]) {
+            if lib_license is json[] {
                 ids = getLicenseID(lib_name, lib_version, lib_license);
             }
             json libObject = {
@@ -225,17 +259,18 @@ isolated function UpdateLicenseID(json DataJson) returns json|error {
     return finalDataJson;
 }
 
+// Get license ids for a library
 isolated function getLicenseID(string libName, string libVersion, json[] libUrl) returns json[] {
     json[] licenseID = getLicenseIdbyDB(libName, libVersion);
     int id;
-    if (licenseID.length() === 0) {
+    if licenseID.length() === 0 {
         foreach json url in libUrl {
             id = getLicenseIdbyUrl(url.toString());
-            if (id === 0) {
+            if id === 0 {
                 string? license = java:toString(getSubString(java:fromString(url.toString())));
                 if license is string {
                     id = getLicenseIdbyUrl(license);
-                    if (id !== 0) {
+                    if id !== 0 {
                         licenseID.push(id);
                     }
                 } else {
@@ -251,6 +286,7 @@ isolated function getLicenseID(string libName, string libVersion, json[] libUrl)
     }
 }
 
+// Get license Id by from the database
 isolated function getLicenseIdbyDB(string libName, string libVersion) returns int[] {
     int[] licenseID = [];
     int licenseId;
@@ -260,16 +296,16 @@ isolated function getLicenseIdbyDB(string libName, string libVersion) returns in
         
     stream<Library_License, error?> queryResponse = mysqlEp->query(query);
 
-    if (queryResponse is stream<Library_License>) {
+    if queryResponse is stream<Library_License> {
             foreach Library_License row in queryResponse {
                 licenseId = row.LIC_ID;
                 exist = false;
                 foreach int id in licenseID {
-                    if (id == licenseId) {
+                    if id == licenseId {
                         exist = true;
                     }
                 }
-                if (!exist) {
+                if !exist {
                     licenseID.push(licenseId);
                 }
             }       
@@ -278,13 +314,14 @@ isolated function getLicenseIdbyDB(string libName, string libVersion) returns in
     return licenseID;
 }
 
+// Get license Id that matches with the url
 isolated function getLicenseIdbyUrl(string url) returns int {
     int licenseID = 0;
 
     sql:ParameterizedQuery query = `SELECT * FROM LM_LICENSE WHERE LIC_URL LIKE "%${url}%"`; 
     stream<License, error?> queryResponse = mysqlEp->query(query);
 
-    if (queryResponse is stream<License>) {
+    if queryResponse is stream<License> {
             foreach License row in queryResponse {
                 licenseID = row.LIC_ID;
             }
@@ -293,30 +330,31 @@ isolated function getLicenseIdbyUrl(string url) returns int {
     return licenseID;
 }
 
+// check if there are libraries without licenses or blocked licenses
 isolated function checkLicense(json DataJson) returns json|error {
     int[] blockedLicenseIds = getBlockedLicenses();
     string productName = (check DataJson.packName).toString();
     string productVersion = (check DataJson.packVersion).toString();
-    json | error libraries = DataJson.library;
+    json|error libraries = DataJson.library;
     json[] blockedLicense = [];
     json[] withoutLicense = [];
-    if (libraries is json[]) {
+    if libraries is json[] {
         foreach  json libraryData in libraries {
             
-            json | error lib_license = libraryData.libLicenseID;
-            if (lib_license is json[]) {
-                if (lib_license.length() === 0) {
+            json|error lib_license = libraryData.libLicenseID;
+            if lib_license is json[] {
+                if lib_license.length() === 0 {
                     withoutLicense.push(libraryData);
                 } else {
                     int count = 0;
                     foreach var id in lib_license {
                         foreach int blockedId in blockedLicenseIds {
-                            if (<int>id == blockedId) {
+                            if <int>id == blockedId {
                                 count = count + 1;
                             }
                         }
                     }
-                    if (count == lib_license.length()) {
+                    if count == lib_license.length() {
                         blockedLicense.push(libraryData);
                     }
                 }
@@ -333,7 +371,13 @@ isolated function checkLicense(json DataJson) returns json|error {
     } else {
         
         log:printInfo(productName + "-" + productVersion + " has been identified with libraries without license");
-        json errorData = {status: 400, packName: productName, packVersion: productVersion, blocked: blockedLicense, empty: withoutLicense};
+        json errorData = {
+            status: 400,
+            packName: productName,
+            packVersion: productVersion,
+            blocked: blockedLicense,
+            empty: withoutLicense
+        };
         _ = check insertTemporaryData(errorData);
 
         sendEmail(errorData);
@@ -341,6 +385,7 @@ isolated function checkLicense(json DataJson) returns json|error {
     }
 }
 
+// Get all the blocked license Ids
 isolated function getBlockedLicenses() returns int[] {
     int[] licenseID = [];
 
@@ -348,43 +393,11 @@ isolated function getBlockedLicenses() returns int[] {
         
     stream<License, error?> queryResponse = mysqlEp->query(query);
 
-    if (queryResponse is stream<License>) {
+    if queryResponse is stream<License> {
             foreach License row in queryResponse {
                 licenseID.push(row.LIC_ID);
             }       
     }
 
     return licenseID;
-}
-
-isolated function uploadPack(stream<byte[], io:Error?> streamer, string randomName) returns boolean{
-    
-    string filePath = FILE_PATH+"/"+randomName+".zip";
-    io:Error? saveTempFile = io:fileWriteBlocksFromStream( filePath, streamer);
-    
-    if(saveTempFile is io:Error){
-        log:printError("File saving failed");
-        return false;
-    }
-
-    if(checkContainer("container-1") is error){
-        log:printError("container creation failed");
-        return false;
-    }
-
-    error? putBlobResult = blobClient->uploadLargeBlob("container-1", randomName+".zip", filePath);
-
-    if(putBlobResult is error){
-        log:printError("Failed to save the pack");
-        return false;
-    }else{
-        log:printInfo("Pack is saved");
-    }
-
-    error? removeTempFile = file:remove(filePath);
-    if(removeTempFile is error){
-        log:printError("Error in deleting temp file");
-    }
-
-    return true;
 }

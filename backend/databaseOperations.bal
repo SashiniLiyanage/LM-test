@@ -2,6 +2,7 @@ import ballerinax/mysql.driver as _;
 import ballerina/sql;
 import ballerina/jballerina.java;
 import ballerina/log;
+import ballerina/io;
 
 type License record {|
     int LIC_ID;
@@ -18,7 +19,6 @@ type LicenseRequest record {|
     string LIC_URL;
     string LIC_CATEGORY;
     string? LIC_REASON;
-    string? LIC_REQUESTER;
 |};
 
 type Updated_License record{|
@@ -58,6 +58,15 @@ type ProcessingPack record {|
     int PACK_STATUS_CODE;
 |};
 
+type TemporaryPack record {|
+    string PACK_NAME;
+    string LIB_NAME;
+    string LIB_VERSION;
+    string LIB_FILENAME;
+    string LIB_TYPE;
+    string LIB_LICENSE;
+|};
+
 type Product record {|
     int PROD_ID;
     string PROD_NAME;
@@ -78,6 +87,13 @@ type LicenceBlob record {|
     string BLOB_TIMESTAMP;
 |};
 
+enum StatusCode {
+    FAILED_STATE = "0",
+    SUCCESS_STATE = "1",
+    PROCESSING_STATE = "2",
+    BLOCKED_STATE = "3"
+}
+
 // get name of the pack
 isolated function getName(handle product) returns handle = @java:Method {
     name: "getName",
@@ -87,12 +103,6 @@ isolated function getName(handle product) returns handle = @java:Method {
 // get version of the pack
 isolated function getVersion(handle product) returns handle = @java:Method {
     name: "getVersion",
-    'class: "org.wso2.internal.apps.license.manager.TraversePack"
-} external;
-
-// generate a sas token to upload file from the frontend
-isolated function generateSas(handle accountName, handle accountKey) returns handle = @java:Method {
-    name: "generateSas",
     'class: "org.wso2.internal.apps.license.manager.TraversePack"
 } external;
 
@@ -113,7 +123,7 @@ isolated function getAllLicense() returns json|error {
 
 }
 
-// get all licenses
+// get all requested licenses
 isolated function getAllLicenseRequests() returns json|error {
 
     LicenseRequest[] license_list = [];
@@ -130,7 +140,7 @@ isolated function getAllLicenseRequests() returns json|error {
 
 }
 
-// get all licenses
+// approve a license
 isolated function approveLicenseRequest(int licId) returns boolean {
 
     LicenseRequest request;
@@ -138,17 +148,17 @@ isolated function approveLicenseRequest(int licId) returns boolean {
     sql:ParameterizedQuery query = `SELECT * FROM LM_LICENSE_REQUESTS WHERE LIC_ID=${licId}`;
     stream<LicenseRequest, error?> queryResponse = mysqlEp->query(query);
 
-    if (queryResponse is stream<LicenseRequest>) {
+    if queryResponse is stream<LicenseRequest> {
         LicenseRequest[] license_list  = from LicenseRequest item in queryResponse select item;
         request = license_list[0];
-    }else{
+    } else {
         log:printError("Error in getting license requests");
         return false;
     }
 
-    boolean success = addNewLicense(request.LIC_NAME,request.LIC_KEY,request.LIC_URL,request.LIC_CATEGORY);
+    boolean success = addNewLicense(request.LIC_NAME, request.LIC_KEY, request.LIC_URL, request.LIC_CATEGORY);
 
-    if(success){
+    if success {
         _ = deleteLicenseRequest(licId);
     }
 
@@ -156,7 +166,7 @@ isolated function approveLicenseRequest(int licId) returns boolean {
 
 }
 
-// get all licenses
+// delete license request
 isolated function deleteLicenseRequest(int licId) returns boolean {
 
     sql:ParameterizedQuery query = `DELETE FROM LM_LICENSE_REQUESTS WHERE LIC_ID=${licId}`;    
@@ -164,7 +174,7 @@ isolated function deleteLicenseRequest(int licId) returns boolean {
     
     if(executionResult is sql:ExecutionResult){
         return true;
-    }else{
+    } else {
         log:printError("Error in inserting license", executionResult);
         return false;
     }
@@ -175,12 +185,13 @@ isolated function deleteLicenseRequest(int licId) returns boolean {
 // insert new license
 isolated function addNewLicense(string licName, string licKey, string licUrl,string licCategory) returns boolean {
 
-    sql:ParameterizedQuery query = `INSERT INTO LM_LICENSE (LIC_NAME,LIC_KEY,LIC_URL, LIC_CATEGORY) VALUES (${licName},${licKey},${licUrl},${licCategory})`;
+    sql:ParameterizedQuery query = `INSERT INTO LM_LICENSE (LIC_NAME,LIC_KEY,LIC_URL, LIC_CATEGORY) 
+        VALUES (${licName},${licKey},${licUrl},${licCategory})`;
     sql:ExecutionResult|sql:Error executionResult = mysqlEp->execute(sqlQuery = query);
 
     if(executionResult is sql:ExecutionResult){
         return true;
-    }else{
+    } else {
         log:printError("Error in inserting license", executionResult);
         return false;
     }
@@ -188,32 +199,34 @@ isolated function addNewLicense(string licName, string licKey, string licUrl,str
    
 }
 
-// insert new license request
+// check if license exists
 isolated function checkLicenseExists(string licName, string licKey) returns boolean? {
     
     sql:ParameterizedQuery query = `SELECT * FROM LM_LICENSE WHERE LIC_NAME=${licName} OR LIC_KEY=${licKey}`;
     stream<License, error?> queryResponse = mysqlEp->query(query);
 
-    if (queryResponse is stream<License>) {
+    if queryResponse is stream<License> {
         
         License[] license_list  = from License item in queryResponse select item;
         return license_list.length() > 0 ;
 
-    }else{
+    } else {
         log:printError("Error in getting processing packs");
         return;
     }  
 }
 
 // insert new license request
-isolated function addNewLicenseRequest(string licName, string licKey, string licUrl,string licCategory, string licReason, string licRequester) returns boolean {
+isolated function addNewLicenseRequest(string licName, string licKey, string licUrl, string licCategory,
+    string licReason) returns boolean {
 
-    sql:ParameterizedQuery query = `INSERT INTO LM_LICENSE_REQUESTS (LIC_NAME,LIC_KEY,LIC_URL, LIC_CATEGORY, LIC_REASON, LIC_REQUESTER) VALUES (${licName},${licKey},${licUrl},${licCategory},${licReason},${licRequester})`;
+    sql:ParameterizedQuery query = `INSERT INTO LM_LICENSE_REQUESTS (LIC_NAME,LIC_KEY,LIC_URL, LIC_CATEGORY, LIC_REASON)
+        VALUES (${licName},${licKey},${licUrl},${licCategory},${licReason})`;
     sql:ExecutionResult|sql:Error executionResult = mysqlEp->execute(sqlQuery = query);
 
     if(executionResult is sql:ExecutionResult){
         return true;
-    }else{
+    } else {
         log:printError("Error in inserting license request", executionResult);
         return false;
     }
@@ -224,7 +237,8 @@ isolated  function getAllLibraries() returns json| error?{
 
     Library[] all_library_list = [];
 
-    sql:ParameterizedQuery query = `SELECT LIB_ID,LIB_FILENAME,LIB_TYPE,LIC_KEY FROM LM_LIBRARY_LICENSE INNER JOIN LM_LICENSE USING (LIC_ID) INNER JOIN LM_LIBRARY USING (LIB_ID) ORDER BY LIB_ID`;
+    sql:ParameterizedQuery query = `SELECT LIB_ID,LIB_FILENAME,LIB_TYPE,LIC_KEY FROM LM_LIBRARY_LICENSE 
+        INNER JOIN LM_LICENSE USING (LIC_ID) INNER JOIN LM_LIBRARY USING (LIB_ID) ORDER BY LIB_ID`;
     stream<Library, error?> queryResponse = mysqlEp->query(query);
 
     check from Library item in queryResponse
@@ -234,11 +248,11 @@ isolated  function getAllLibraries() returns json| error?{
     return all_library_list.toJson();
 }
 
-// searchs libraries by a keyword. if keyword is empty, returns all libraries in given page.
+// search libraries by a keyword. if keyword is empty, returns all libraries in given page.
 isolated  function getLibraries(int pageNum, int pageSize, string searchTerm) returns json| error?{
 
     Library[] library_list = [];
-    string term = "%"+ searchTerm + "%";
+    string term = "%" + searchTerm + "%";
     sql:ParameterizedQuery query = 
         `
             SELECT LIB_ID,LIB_FILENAME,LIB_TYPE,LIC_KEY 
@@ -262,12 +276,13 @@ isolated  function getLibraries(int pageNum, int pageSize, string searchTerm) re
 // update license
 isolated function updateLicense(string licName, string licKey, string licUrl, string licCategory, int licId) returns boolean {
     
-    sql:ParameterizedQuery query = `UPDATE LM_LICENSE SET LIC_NAME=${licName}, LIC_KEY=${licKey}, LIC_URL=${licUrl}, LIC_CATEGORY=${licCategory} WHERE LIC_ID=${licId}`;
+    sql:ParameterizedQuery query = `UPDATE LM_LICENSE SET LIC_NAME=${licName}, LIC_KEY=${licKey},
+        LIC_URL=${licUrl}, LIC_CATEGORY=${licCategory} WHERE LIC_ID=${licId}`;
     sql:ExecutionResult|sql:Error executionResult = mysqlEp->execute(sqlQuery = query);
 
     if(executionResult is sql:ExecutionResult){
         return true;
-    }else{
+    } else {
         log:printError("Error in updating licenses", executionResult);
         return false;
     }
@@ -278,16 +293,16 @@ isolated function updateLibrary(json[] licenses, int libId) returns boolean {
 
     boolean success = deleteLibraryLicense(libId);
 
-    if(success){
+    if success {
         foreach json license in licenses {
             json|error licId = license.value;
 
-            if(licId is int){
+            if licId is int {
                 boolean insert = insertLibraryLicenseData(libId, licId);
-                if (!insert){
+                if !insert {
                     return false;
                 }
-            }else{
+            } else {
                 log:printError("License Id is not an integer");
                 return false;
             }
@@ -311,9 +326,9 @@ isolated function addNewLibrary(string libName, string libType, json[] licenses)
     int[] licenseID = [];
     foreach json license in licenses {
         json|error value = license.value;
-        if(value is int){
+        if value is int {
             licenseID.push(value);
-        }else{
+        } else {
             log:printError("Error: Invalid licence id");
             return false;
         }
@@ -337,7 +352,7 @@ isolated function deleteLibraryLicense(int libId) returns boolean {
 
     if result is sql:ExecutionResult {
         return true;
-    }else{
+    } else {
         log:printError("Error in deleting library licenses ", result);
         return false ;
     }
@@ -350,19 +365,19 @@ isolated  function checkPack(string packName) returns boolean? {
     sql:ParameterizedQuery query = `SELECT * FROM LM_PROCESSING_PACK WHERE PACK_NAME=${packName}`;
     stream<ProcessingPack, error?> queryResponse = mysqlEp->query(query);
 
-    if (queryResponse is stream<ProcessingPack>) {
+    if queryResponse is stream<ProcessingPack> {
         
         ProcessingPack[] processing_pack_list  = from ProcessingPack item in queryResponse select item;
 
         return processing_pack_list.length() > 0 ;
 
-    }else{
+    } else {
         log:printError("Error in getting processing packs");
         return;
     }  
 }
 
-// get pack status
+// get all pack status
 isolated function getPackstatus() returns json| error? {
     
     ProcessingPack[] processing_pack_list = [];
@@ -377,45 +392,49 @@ isolated function getPackstatus() returns json| error? {
     return processing_pack_list.toJson();
 }
 
+// Update status of the packs that are processing for more than an hour
+isolated function updateInterruptedPackStatus() returns boolean {
+    string newStatus = "Processing for more than 30 Minutes";
+    string newStatusCode = FAILED_STATE;
+
+    sql:ParameterizedQuery query = `UPDATE LM_PROCESSING_PACK SET PACK_STATUS=${newStatus}, PACK_STATUS_CODE=${newStatusCode}, PACK_TIMESTAMP=NOW() 
+        WHERE PACK_TIMESTAMP < DATE_SUB(NOW(), INTERVAL 30 MINUTE) AND PACK_STATUS_CODE = 2`;
+    sql:ExecutionResult|sql:Error result = mysqlEp->execute(sqlQuery = query);
+
+    if result is sql:ExecutionResult {
+        return true;
+    }else{
+        log:printError("Error in updating packs that are in processing state for more than 30 Minutes ", result);
+        return false ;
+    }
+}
+
 // add pack status
 isolated function addPackStatus(string packName, string randomName) returns boolean {
 
     
-    sql:ParameterizedQuery query = `INSERT INTO LM_PROCESSING_PACK (PACK_NAME, PACK_STATUS, PACK_RANDOMNAME,PACK_LICENSE) VALUES (${packName},"uploaded",${randomName},NULL)`;
+    sql:ParameterizedQuery query = `INSERT INTO LM_PROCESSING_PACK (PACK_NAME, PACK_STATUS, PACK_RANDOMNAME,PACK_LICENSE)
+        VALUES (${packName},"uploaded",${randomName},NULL)`;
     sql:ExecutionResult|error executionResult = mysqlEp->execute(sqlQuery = query);
 
     if(executionResult is sql:ExecutionResult){
         return true;
-    }else{
+    } else {
         log:printError("Error in inserting pack status", executionResult);
         return false;
     }
 }
 
-// get uploaded packs which are not processed yet
-isolated  function getNextPack() returns ProcessingPack[]|error {
-    
-    ProcessingPack[] processing_pack_list = [];
-
-    sql:ParameterizedQuery query = `SELECT * FROM LM_PROCESSING_PACK WHERE PACK_STATUS = "uploaded" ORDER BY PACK_TIMESTAMP`;
-    stream<ProcessingPack, error?> queryResponse = mysqlEp->query(query);
-
-    check from ProcessingPack item in queryResponse
-        do {processing_pack_list.push(item);};
-    check queryResponse.close();
-
-    return processing_pack_list;
-}
-
 // update status of a pack
-isolated function updateStatus(string packName, string status, int statusCode) returns boolean {
+isolated function updateStatus(string packName, string status, string statusCode) returns boolean {
 
-    sql:ParameterizedQuery query = `UPDATE LM_PROCESSING_PACK SET PACK_STATUS=${status},PACK_STATUS_CODE=${statusCode} WHERE PACK_NAME=${packName}`;
+    sql:ParameterizedQuery query = `UPDATE LM_PROCESSING_PACK SET PACK_STATUS=${status},PACK_STATUS_CODE=${statusCode}, PACK_TIMESTAMP=NOW()
+        WHERE PACK_NAME=${packName}`;
     sql:ExecutionResult|error executionResult = mysqlEp->execute(sqlQuery = query);
 
-    if(executionResult is sql:ExecutionResult){
+    if executionResult is sql:ExecutionResult {
         return true;
-    }else{
+    } else {
         log:printError("Error in updating status", executionResult);
     }
 
@@ -425,11 +444,11 @@ isolated function updateStatus(string packName, string status, int statusCode) r
 // insert data about library without licenses
 isolated function insertTemporaryData(json errorData) returns error? {
 
-    string packName = (check errorData.packName).toString() + "-" + (check errorData.packVersion).toString()+".zip";
+    string packName = (check errorData.packName).toString() + "-" + (check errorData.packVersion).toString() + ".zip";
     json|error emptyData = errorData.empty;
     json|error blockedData = errorData.blocked;
 
-    if (emptyData is json[] && blockedData is json[]){
+    if (emptyData is json[] && blockedData is json[]) {
         _ = check insert(emptyData, packName, 0);
         _= check insert(blockedData, packName, 1);
     } else {
@@ -438,18 +457,63 @@ isolated function insertTemporaryData(json errorData) returns error? {
 
 }
 
+// insert extracted pack data when libraries without licenses are found
+isolated function savePackData(string packName, string packData) returns error? {
+
+    io:StringReader stringReader = new (packData, encoding = "UTF-8");
+    json|error Json = stringReader.readJson();
+
+    if Json is json {
+        json libraries = check Json.library;
+
+        if libraries is json[] {
+            foreach  json libraryData in libraries {
+                json|error lib_license = libraryData.libLicense;
+                string lib_name = (check libraryData.libName).toString();
+                string lib_version = (check libraryData.libVersion).toString();
+                string lib_filename = (check libraryData.libFilename).toString();
+                string lib_type = (check libraryData.libType).toString();
+
+                if lib_license is json[] {
+                    string libLicense = lib_license.toJsonString();
+                    _ = check insertTempPackData(packName, lib_name, lib_version, lib_filename, lib_type, libLicense);
+                }
+            }
+        }
+    } else {
+        log:printError("Error in converting to json", Json);
+        return Json;
+    }
+}
+
+isolated function insertTempPackData(string packName, string libName, string libVersion, string fileName, string libType,
+    string libLicense) returns error? {
+
+    sql:ParameterizedQuery query = `INSERT INTO LM_TEMPORARY_PACK_DATA (PACK_NAME, LIB_NAME, LIB_VERSION, LIB_FILENAME,
+        LIB_TYPE, LIB_LICENSE) VALUES (${packName},${libName},${libVersion},${fileName},${libType},${libLicense})`;
+    sql:ExecutionResult|error executionResult = mysqlEp->execute(sqlQuery = query);
+
+    if executionResult is error {
+        log:printError("Error in inserting temp data", executionResult);
+        return executionResult;
+    }
+    return;
+}
+
 // insert status of library without licenses
 isolated function insert(json[] temData, string packName, int status) returns boolean|error {
     string libFilename;
     string libType;
+
     foreach json library in temData {
         libFilename = (check library.libFilename).toString();
         libType = (check library.libType).toString();      
 
-        sql:ParameterizedQuery query = `INSERT INTO LM_TEMPORARY_TABLE (PACK_NAME, LIB_FILENAME, LIB_TYPE, BLOCKED) VALUES (${packName},${libFilename},${libType},${status})`;
+        sql:ParameterizedQuery query = `INSERT INTO LM_TEMPORARY_TABLE (PACK_NAME, LIB_FILENAME, LIB_TYPE, BLOCKED)
+            VALUES (${packName},${libFilename},${libType},${status})`;
         sql:ExecutionResult|error executionResult = mysqlEp->execute(sqlQuery = query);
 
-        if(executionResult is error){
+        if executionResult is error {
             log:printError("Error in inserting temp data", executionResult);
             return false;
         }
@@ -457,38 +521,38 @@ isolated function insert(json[] temData, string packName, int status) returns bo
     return true;
 }
 
-// delete packs and license file from azure storage
-isolated  function deletePack(string packName, string licenseFile) returns boolean {
-
-    string randomName = getPackRandomName(packName);
+// delete packs status
+isolated  function deletePack(string packName) returns boolean {
 
     sql:ParameterizedQuery query = `DELETE FROM LM_PROCESSING_PACK WHERE PACK_NAME=${packName}`;
     sql:ExecutionResult|error executionResult = mysqlEp->execute(sqlQuery = query);
 
-    if(executionResult is sql:ExecutionResult){
-        map<json>| error removePack = blobClient->deleteBlob("container-1", randomName + ".zip");
-
-        if(removePack is error){
-            log:printError("Error in deleting pack ",removePack);
-        }else{
-            log:printInfo("pack is deleted");
-        }
-
-        if(licenseFile !== ""){
-            map<json>| error removeLicense = blobClient->deleteBlob("container-2",licenseFile);
-            if(removeLicense is error){
-                log:printError("Error in Licenses file ",removeLicense);
-            }else{
-                log:printInfo("license file is deleted");
-            }
-        }
-
+    if executionResult is sql:ExecutionResult {
         return true;
 
-    }else{
+    } else {
         log:printError("Error in deleting pack name ", executionResult);
         return false;
     }
+}
+
+// get license filename of the pack
+isolated function getLicenseFileName(string packName) returns string {
+    string licenseFileName = "";
+
+    sql:ParameterizedQuery query = `SELECT * FROM LM_PROCESSING_PACK WHERE PACK_NAME=${packName}`;
+    stream<ProcessingPack, error?> queryResponse = mysqlEp->query(query);
+
+    if queryResponse is stream<ProcessingPack> {
+        foreach ProcessingPack row in queryResponse {
+            licenseFileName = row.PACK_LICENSE ?: "";
+        }
+        return licenseFileName;
+    } else {
+        log:printError("Error in getting random pack name");
+        return licenseFileName;
+    }
+   
 }
 
 // get random name of the pack
@@ -498,18 +562,19 @@ isolated function getPackRandomName(string packName) returns string {
     sql:ParameterizedQuery query = `SELECT * FROM LM_PROCESSING_PACK WHERE PACK_NAME=${packName}`;
     stream<ProcessingPack, error?> queryResponse = mysqlEp->query(query);
 
-    if (queryResponse is stream<ProcessingPack>) {
+    if queryResponse is stream<ProcessingPack> {
         foreach ProcessingPack row in queryResponse {
             randomName = row.PACK_RANDOMNAME;
         }
         return randomName;
-    }else{
+    } else {
         log:printError("Error in getting random pack name");
         return randomName;
     }
    
 }
-// get temporary data about libraries without licenses
+
+// get temporary data about blocked and libraries without licenses
 isolated function getTemporaryData(string packName) returns json {
     json[] librariesWithoutLicense = getData(packName, 0);
     json[] librariesWithblockedLicense = getData(packName, 1);
@@ -525,13 +590,13 @@ isolated function getallLibraryRequests() returns json {
     sql:ParameterizedQuery query = `SELECT * FROM LM_LIBRARY_REQUEST`;
     stream<LibraryRequest, error?> queryResponse = mysqlEp->query(query);
     
-    if (queryResponse is stream<LibraryRequest>) {
+    if queryResponse is stream<LibraryRequest> {
         foreach LibraryRequest item in queryResponse {
             int[] licenseID = getLibraryLicenseId(item.LIB_ID);
             json library = {...item, licenseID};
             library_list.push(library);
         }
-    }else{
+    } else {
         log:printError("Error in getting temporary data");
     }
  
@@ -544,7 +609,7 @@ isolated function getLibraryLicenseId(int libId) returns int[]{
     sql:ParameterizedQuery query = `SELECT * FROM LM_LIBRARY_LICENSE_REQUEST WHERE LIB_ID=${libId}`;
     stream<Library_License, error?> queryResponse = mysqlEp->query(query);
 
-    if(queryResponse is stream<Library_License>){
+    if queryResponse is stream<Library_License> {
         foreach Library_License item in queryResponse {
             licenseId.push(item.LIC_ID);
         }
@@ -560,27 +625,44 @@ isolated function getData(string packName, int status) returns json[] {
     sql:ParameterizedQuery query = `SELECT * FROM LM_TEMPORARY_TABLE WHERE PACK_NAME=${packName} AND BLOCKED=${status}`;
     stream<Temporary, error?> queryResponse = mysqlEp->query(query);
     
-    if (queryResponse is stream<Temporary>) {
+    if queryResponse is stream<Temporary> {
         foreach Temporary item in queryResponse {
-            jsonArray.push({LIB_FILENAME:item.LIB_FILENAME, LIB_TYPE:item.LIB_TYPE});
+            jsonArray.push({LIB_FILENAME: item.LIB_FILENAME, LIB_TYPE: item.LIB_TYPE});
         }
-    }else{
+    } else {
         log:printError("Error in getting temporary data");
     }
 
     return jsonArray;
 }
 
+// get data from LM_TEMPORARY_PACK_DATA
+isolated function getTemporaryPackData(string packName) returns TemporaryPack[]|error {
 
-// add new library
-isolated function addNewLibraryRequest(string packName, string libName, string libType, json[] licenses, string url, string comment) returns boolean {
+    TemporaryPack[] tempPack = [];
+
+    sql:ParameterizedQuery query = `SELECT * FROM LM_TEMPORARY_PACK_DATA WHERE PACK_NAME=${packName}`;
+    stream<TemporaryPack, error?> queryResponse = mysqlEp->query(query);
+
+    check from TemporaryPack item in queryResponse
+        do {tempPack.push(item);};
+    check queryResponse.close();
+
+    return tempPack;
+}
+
+
+// insert new library request
+isolated function addNewLibraryRequest(string packName, string libName, string libType, json[] licenses,
+    string url, string comment) returns boolean {
 
     int[] licenseID = [];
+
     foreach json license in licenses {
         json|error value = license.value;
-        if(value is int){
+        if value is int {
             licenseID.push(value);
-        }else{
+        } else {
             log:printError("Error: Invalid licence id");
             return false;
         }
@@ -589,6 +671,7 @@ isolated function addNewLibraryRequest(string packName, string libName, string l
     json data = {libName, packName, libType, libLicenseID: licenseID, url, comment};
     
     int libraryID = insertLibraryRequestJson(data);
+
     if libraryID != 0 {
         _ = deleteTemporaryData(packName, libName);
         return true;
@@ -600,11 +683,11 @@ isolated function addNewLibraryRequest(string packName, string libName, string l
 // add updated library with licenses
 isolated function addLibraryLicense(json library, string packName) returns boolean {
 
-    json | error license;
+    json|error license;
 
     license = library.libLicenseID;
 
-    if (license is json[]) {
+    if license is json[] {
         
         json|error libName = library.libFilename;
         json|error libType = library.libType;
@@ -618,11 +701,12 @@ isolated function addLibraryLicense(json library, string packName) returns boole
     }
     
     json jsonObject = getTemporaryData(packName);
-    json | error empty = jsonObject.emptyLibrary;
-    json | error blocked = jsonObject.blockedLibrary;
+    json|error empty = jsonObject.emptyLibrary;
+    json|error blocked = jsonObject.blockedLibrary;
     boolean checkRequests = getRequestsData(packName);
+
     if (empty is json[] && empty.length() == 0 && blocked is json[] && blocked.length() == 0 && !checkRequests) {
-        _ = updateStatus(packName, "uploaded", 2);
+        _ = regenerateLicenseFile(packName);
     }
     
     return true;
@@ -634,9 +718,9 @@ isolated function deleteTemporaryData(string packName, string libraryName) retur
     sql:ParameterizedQuery query = `DELETE FROM LM_TEMPORARY_TABLE WHERE PACK_NAME=${packName} AND LIB_FILENAME=${libraryName}`;
     sql:ExecutionResult|error executionResult = mysqlEp->execute(sqlQuery = query);
 
-    if(executionResult is sql:ExecutionResult){
+    if executionResult is sql:ExecutionResult {
         return true;
-    }else{
+    } else {
         log:printError("Error in deleting temporary data", executionResult);
         return false;
     }
@@ -646,12 +730,13 @@ isolated function deleteTemporaryData(string packName, string libraryName) retur
 // delete library requests
 isolated function deleteLibraryRequest(string packName, string libraryName) returns boolean {
     
-    sql:ParameterizedQuery query = `DELETE FROM LM_LIBRARY_REQUEST WHERE PACK_NAME=${packName} AND LIB_FILENAME=${libraryName}`;
+    sql:ParameterizedQuery query = `DELETE FROM LM_LIBRARY_REQUEST WHERE PACK_NAME=${packName}
+        AND LIB_FILENAME=${libraryName}`;
     sql:ExecutionResult|error executionResult = mysqlEp->execute(sqlQuery = query);
 
-    if(executionResult is sql:ExecutionResult){
+    if executionResult is sql:ExecutionResult {
         return true;
-    }else{
+    } else {
         log:printError("Error in deleting temporary data", executionResult);
         return false;
     }
@@ -659,40 +744,41 @@ isolated function deleteLibraryRequest(string packName, string libraryName) retu
 }
 
 // get requested data of a one pack
-isolated function getRequestsData(string packName) returns boolean{
+isolated function getRequestsData(string packName) returns boolean {
 
     sql:ParameterizedQuery query = `SELECT * FROM LM_LIBRARY_REQUEST WHERE PACK_NAME=${packName}`;
     stream<LibraryRequest, error?> queryResponse = mysqlEp->query(query);
 
-    if(queryResponse is stream<LibraryRequest>){
+    if queryResponse is stream<LibraryRequest> {
         LibraryRequest[] library_list  = from LibraryRequest item in queryResponse select item;
         return library_list.length() > 0 ;
-    }else{
+    } else {
         log:printError("Error in selecting library requests");
         return false;
     }
 }
 
 // save the license file in a container
-isolated  function saveBlob(string  licenseFileName, byte[] blobContent) returns boolean{
+isolated function saveBlob(string  licenseFileName, byte[] blobContent) returns string? {
 
-    if(checkContainer("container-3") is error){
+    if(checkContainer("container-2") is error){
         log:printError("container creation failed");
-        return false;
+        return;
     }
 
     string blobName = getRandompackName() + "_" + licenseFileName;
-    map<json>|error putBlobResult = blobClient->putBlob("container-3", blobName, "BlockBlob", blobContent);
+    map<json>|error putBlobResult = blobClient->putBlob("container-2", blobName, "BlockBlob", blobContent);
     
-    sql:ParameterizedQuery query = `INSERT INTO LM_LICENSEFILE_BLOB (FILENAME, BLOB_NAME, BLOB_TIMESTAMP) VALUES (${licenseFileName},${blobName},NOW())`;
+    sql:ParameterizedQuery query = `INSERT INTO LM_LICENSEFILE_BLOB (FILENAME, BLOB_NAME, BLOB_TIMESTAMP)
+        VALUES (${licenseFileName},${blobName},NOW())`;
     sql:ExecutionResult|sql:Error executionResult = mysqlEp->execute(sqlQuery = query);
 
-    if(executionResult is sql:Error || putBlobResult is error){
+    if (executionResult is sql:Error || putBlobResult is error) {
         log:printError("Failed to save blob");
-        return false;
-    }else{
+        return;
+    } else {
         log:printInfo("Blob is saved");
-        return true;
+        return blobName;
     }
 }
 

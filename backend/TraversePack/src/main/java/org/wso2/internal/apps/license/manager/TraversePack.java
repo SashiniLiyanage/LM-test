@@ -3,10 +3,8 @@ package org.wso2.internal.apps.license.manager;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Stack;
 import java.util.UUID;
@@ -14,15 +12,22 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.SharedAccessAccountPolicy;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TraversePack {
+
+    private static final Logger LOGGER = Logger.getLogger("TraversePack");
+
+    static {
+        Handler consoleHandler = new ConsoleHandler();
+        consoleHandler.setLevel(Level.ALL);
+        LOGGER.addHandler(consoleHandler);
+        LOGGER.setLevel(Level.ALL);
+        LOGGER.setUseParentHandlers(false);
+    }
 
     public static String getName(String product) {
         try{
@@ -36,7 +41,7 @@ public class TraversePack {
             }
             return extractedName;
         }catch(Exception e){
-                System.out.println("Error getting name: "+product+" error: "+e.getMessage());
+                LOGGER.warning("Error getting name: " + product + " error: " + e.getMessage());
                 return "";
         }
     }
@@ -58,7 +63,7 @@ public class TraversePack {
             }
             return extractedVersion;
         }catch(Exception e){
-            System.out.println("Error getting version: "+product+" error: "+e.getMessage());
+            LOGGER.warning("Error getting version: " + product + " error: " + e.getMessage());
             return "";
         }
     }
@@ -86,20 +91,19 @@ public class TraversePack {
             String tempFolderToHoldJars = new File(unzipPath).getParent() + File.separator + uuid;
             String jsonlibrary = getjsonLiraryString(unzipPath, tempFolderToHoldJars);
 
-            // delete the source zip file after extracting it
+            // delete the source zip file and extracted files after getting json string
             LicenseManagerUtils.deleteFolder(source);
-            // delete the extracted file after getting json string
             LicenseManagerUtils.deleteFolder(extractedFilePath);
 
             jsonString += jsonlibrary + "}";
             return jsonString;
 
         }catch(Exception e){
-            // delete the source zip file after extracting it
+
             LicenseManagerUtils.deleteFolder(source);
-            // delete the extracted file after getting json string
             LicenseManagerUtils.deleteFolder(extractedFilePath);
 
+            LOGGER.severe(e.getMessage());
             e.printStackTrace();
             return "Exception";
         }
@@ -111,7 +115,7 @@ public class TraversePack {
      */
     public static String getjsonLiraryString(String path, String tempFolderToHoldJars) throws Exception {
         try{
-            System.out.println("Generating library license string");
+            LOGGER.info("Generating library license string");
             String jsonlibrary = "[";
             List<File> jarsInBundle = new ArrayList<>();
             List<File> jarFilesInPack = findDirectJars(path);
@@ -120,6 +124,7 @@ public class TraversePack {
             zipStack.addAll(jarFilesInPack);
             jarFilesInPack.clear();
             tempFolderToHoldJars = tempFolderToHoldJars + File.separator;
+
             while (!zipStack.empty()) {
                 File fileToBeExtracted = zipStack.pop();
                 File extractTo;
@@ -128,15 +133,13 @@ public class TraversePack {
                 try {
                     manifest = new java.util.jar.JarFile(fileToBeExtracted).getManifest();
                 } catch (IOException e) {
-                    //do nothing
-                    System.out.println("Error in getting manifest :"+e.getMessage());
+                    LOGGER.warning("Error in getting manifest : " + e.getMessage());
                 }
                 String name = getName(fileToBeExtracted.getName());
                 String version = getVersion(fileToBeExtracted.getName());
-                String license="[]";
+                String license = "[]";
                 String type = "jar";
                 String groupID = null;
-                String artifactID = getName(fileToBeExtracted.getName());
 
                 if (manifest != null) {
                     license = getLicenseUrl(manifest);
@@ -144,18 +147,18 @@ public class TraversePack {
                     groupID = getGroupID(manifest);
                 }
 
-                System.out.println("Path: "+ fileToBeExtracted.getAbsolutePath());
+                if (!(jsonlibrary.contains("libFilename\":\"" + name + "_" + version + ".jar") 
+                    || jsonlibrary.contains("libFilename\":\"" + name + "-" + version + ".jar") 
+                    || jsonlibrary.contains("libFilename\":\"" + name + "_" + version + ".mar") 
+                    || jsonlibrary.contains("libFilename\":\"" + name + "-" + version + ".mar"))) {
 
-                if (!(jsonlibrary.contains(name+"_"+version+".jar") || jsonlibrary.contains(name+"-"+version+".jar") ||
-                        jsonlibrary.contains(name+"_"+version+".mar") || jsonlibrary.contains(name+"-"+version+".mar"))) {
                     jsonlibrary += "{\"libName\":\"" + name + "\"," +
-                            "\"libVersion\":\"" + version + "\"," +
-                            "\"libFilename\":\"" + fileToBeExtracted.getName() + "\"," +
-                            "\"libType\":\"" + type + "\"," +
-                            "\"libLicense\":" + license +"},";
-
-                    System.out.println("Added to json -> "+name+"-"+version+" : "+license);
+                        "\"libVersion\":\"" + version + "\"," +
+                        "\"libFilename\":\"" + fileToBeExtracted.getName() + "\"," +
+                        "\"libType\":\"" + type + "\"," +
+                        "\"libLicense\":" + license + "},";
                 }
+
                 if (checkInnerJars(fileToBeExtracted.getAbsolutePath())) {
                     extractTo = new File(tempFolderToHoldJars + fileToBeExtracted.getName());
                     extractTo.mkdir();
@@ -167,17 +170,17 @@ public class TraversePack {
                 }
             }
 
-            if(jsonlibrary.length()== 1){
+            if(jsonlibrary.length() == 1){
                 jsonlibrary = "[]";
             }else{
                 jsonlibrary = jsonlibrary.substring(0, jsonlibrary.length() - 1) + "]";
             }
             
-            System.out.println("Library license string is generated");
+            LOGGER.info("Library license string is generated");
             return jsonlibrary;
             
         }catch(Exception e){
-            System.out.println("Error in getjsonLiraryString: "+e.getMessage());
+            LOGGER.severe("Error in getjsonLiraryString: " + e.getMessage());
             throw(e);
         }
     }
@@ -200,7 +203,7 @@ public class TraversePack {
                 url = url.replaceAll("^\"|\"$", "");
                 license = license + "\"" + url + "\",";
             }
-            license = license.substring(0,license.length()-1) + "]";
+            license = license.substring(0, license.length()-1) + "]";
             return license;
         }
         return "[]";
@@ -230,7 +233,7 @@ public class TraversePack {
                 || getVersion(jarFile.getName()).contains("wso2")) {
             return "bundle";
         } else {
-            boolean exist=false;
+            boolean exist = false;
             for (File jar:jarsInBundle){
                 if(jarFile.getName().equals(jar.getName())){
                     exist = true;
@@ -274,7 +277,7 @@ public class TraversePack {
                 }
             }
         } catch (IOException e) {
-            System.out.println("Error in checkInnerJars: "+filePath+" Error:"+e.getMessage());
+            LOGGER.warning("Error in checkInnerJars: " + filePath + " Error:" + e.getMessage());
         }
         return containsJars;
     }
@@ -313,71 +316,4 @@ public class TraversePack {
         return string;
     }
 
-    /**
-     * generate sas token to upload a pack to azure storage.
-     * @param accountName azure storage account name
-     * @param accountkey azure storage account key
-     * @return sas token
-     */
-    public static String generateSas(String accountName, String accountKey){
-        try {
-            String connectionString = String.format("DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s;", accountName, accountKey);
-            CloudStorageAccount account = CloudStorageAccount.parse(connectionString);
-    
-            SharedAccessAccountPolicy policy = new SharedAccessAccountPolicy();
-            policy.setServiceFromString("btqf");
-            policy.setResourceTypeFromString("sco");
-            policy.setPermissionsFromString("rwdl"); // Set the permissions you want for the SAS token
-            policy.setSharedAccessStartTime(new Date(System.currentTimeMillis() - 10000)); // Set the start time for the SAS token
-            policy.setSharedAccessExpiryTime(new Date(System.currentTimeMillis() + 3600000)); // Set the expiry time for the SAS token
-            String sasToken = account.generateSharedAccessSignature(policy);
-            return sasToken;
-             
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "";
-        }
-          
-    }
-
-    /**
-     * generate url to download a pack from azure storage.
-     * @param accountName azure storage account name
-     * @param accountkey azure storage account key
-     * @param blobName file to be downloaded
-     * @param conatinerName azure conatiner name
-     * @return sas token
-     */
-    public static String gnerateDownloadLink(String accountName, String accountKey, String blobName, String containerName){
-
-        try{
-
-            String connectionString = String.format("DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s;", accountName, accountKey);
-            CloudStorageAccount account = CloudStorageAccount.parse(connectionString);
-            
-            CloudBlobClient blobClient = account.createCloudBlobClient();
-
-            CloudBlobContainer container = blobClient.getContainerReference(containerName);
-            CloudBlob blob = container.getBlockBlobReference(blobName);
-
-            // Create a shared access policy with read permission and a validity of 1 hour from now
-            SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
-            policy.setPermissionsFromString("r");
-            policy.setSharedAccessStartTime(new Date(System.currentTimeMillis() - 10000)); // Set the start time for the SAS token
-            policy.setSharedAccessExpiryTime(new Date(System.currentTimeMillis() + 3600000)); // Set the expiry time for the SAS token
-
-            // Generate the shared access signature (SAS) token for the blob
-            String sasToken = blob.generateSharedAccessSignature(policy, null);
-
-            // Construct the downloadable link by appending the SAS token to the blob URL
-            URI blobUri = blob.getUri();
-            String downloadableLink = blobUri.toString() + "?" + sasToken;
-
-            return downloadableLink;
-
-        }catch(Exception e){
-            e.printStackTrace();
-            return "";
-        }
-    }
 }

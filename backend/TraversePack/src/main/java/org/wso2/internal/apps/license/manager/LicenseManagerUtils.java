@@ -28,12 +28,24 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 /*
  * Contains the functions required for the License Generation process.
  */
 public class LicenseManagerUtils {
 
+    private static final Logger LOGGER = Logger.getLogger("LicenseManagerUtils");
+
+    static {
+        Handler consoleHandler = new ConsoleHandler();
+        consoleHandler.setLevel(Level.ALL);
+        LOGGER.addHandler(consoleHandler);
+        LOGGER.setLevel(Level.ALL);
+        LOGGER.setUseParentHandlers(false);
+    }
 
     /**
      * Static function to unzip a file to a given location.
@@ -56,12 +68,9 @@ public class LicenseManagerUtils {
                     copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(new FileOutputStream(f
                             .getAbsolutePath())));
                 }
-                // if (entry.isDirectory()) {
-                //     System.out.println("directory: "+entry.getName());
-                // }
             }
         } catch (IOException e) {
-            System.out.println("Error in unziping: "+infile+" Error:"+e.getMessage());
+            LOGGER.severe("Error in unziping: " + infile + " Error:" + e.getMessage());
             throw(e);
         }
     }
@@ -88,16 +97,18 @@ public class LicenseManagerUtils {
             if (file.isDirectory()) {
                 try{
                     FileUtils.deleteDirectory(file);
-                    System.out.println("Deleted directory: "+filePath);
+                    LOGGER.info("Deleted directory: " + filePath);
+
                 }catch(Exception e){
-                    System.out.println(e.getMessage());
+                    LOGGER.warning(e.getMessage());
                 }
             } else if (file.isFile()) {
                 try{
                     file.delete();
-                    System.out.println("Deleted file: "+filePath);
+                    LOGGER.info("Deleted file: "+filePath);
+                    
                 }catch(Exception e){
-                    System.out.println(e.getMessage());
+                    LOGGER.warning(e.getMessage());
                 }
             }
     }

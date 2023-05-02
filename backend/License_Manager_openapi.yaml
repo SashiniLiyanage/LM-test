@@ -185,44 +185,6 @@ paths:
             text/plain:
               schema:
                 type: string
-  /checkPackv0/{packName}:
-    get:
-      operationId: getCheckpackv0Packname
-      parameters:
-      - name: packName
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
-        "500":
-          description: Found unexpected output
-          content:
-            text/plain:
-              schema:
-                type: string
-  /receiverv0:
-    post:
-      operationId: postReceiverv0
-      requestBody:
-        content:
-          application/json:
-            schema: {}
-      responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
-        "500":
-          description: Found unexpected output
-          content:
-            text/plain:
-              schema:
-                type: string
   /getPackstatus:
     get:
       operationId: getGetpackstatus
@@ -243,20 +205,6 @@ paths:
           description: BadRequest
         "500":
           description: InternalServerError
-  /processAllPacks:
-    get:
-      operationId: getProcessallpacks
-      responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
-        "500":
-          description: Found unexpected output
-          content:
-            text/plain:
-              schema:
-                type: string
   /deletePack/{packName}:
     post:
       operationId: postDeletepackPackname
@@ -277,11 +225,11 @@ paths:
             text/plain:
               schema:
                 type: string
-  /getDownloadingText/{fileName}:
+  /getDownloadingText/{packName}:
     get:
-      operationId: getGetdownloadingtextFilename
+      operationId: getGetdownloadingtextPackname
       parameters:
-      - name: fileName
+      - name: packName
         in: path
         required: true
         schema:
@@ -369,16 +317,6 @@ paths:
           description: Ok
         "500":
           description: InternalServerError
-  /deleteData:
-    get:
-      operationId: getDeletedata
-      responses:
-        "500":
-          description: Found unexpected output
-          content:
-            text/plain:
-              schema:
-                type: string
   /checkPack/{packName}:
     get:
       operationId: getCheckpackPackname
@@ -414,10 +352,10 @@ paths:
             schema:
               description: Any type of entity body
       responses:
-        "200":
-          description: Ok
-        "400":
-          description: BadRequest
         "500":
-          description: InternalServerError
+          description: Found unexpected output
+          content:
+            text/plain:
+              schema:
+                type: string
 components: {}

@@ -24,7 +24,7 @@ isolated function generateLicense(json dataset) returns error? {
     
     file:Error? createFileResults = file:create(licensePath);
 
-    if (!(createFileResults is file:Error)) {
+    if !(createFileResults is file:Error) {
         log:printInfo("Created file path: " + licensePath);
     }
     
@@ -32,15 +32,15 @@ isolated function generateLicense(json dataset) returns error? {
     io:ReadableCharacterChannel sourceChannel = new (readableFieldResult, "UTF-8");
     io:WritableByteChannel writableFileResult = check io:openWritableFile(licensePath);
     io:WritableCharacterChannel destinationChannel = new (writableFileResult, "UTF-8");
-    if (dataset.status == 200) {
+    if dataset.status == 200 {
         var result = process(sourceChannel, destinationChannel);
-        if (result is error) {
+        if result is error {
             log:printError("error occurred while processing chars ", result);
         } else {
             log:printInfo("File processing complete.");
         }
         json | error libraries = dataset.library;
-        if (libraries is json[]) {
+        if libraries is json[] {
             string finalText = check getLibraryString(libraries);
             string licenseText = getLicenseDetails(libraries);
             _ = check destinationChannel.write(finalText, 0);
@@ -60,31 +60,26 @@ isolated function generateLicense(json dataset) returns error? {
         _ = check destinationChannel.write(text, 0);
     }
 
-    _ = updatePackLicense(packName + "-" + packVersion + ".zip", textFile);
     closeRc(sourceChannel);
     closeWc(destinationChannel);
 
-    error? upload = uploadLicenseFile(textFile);
-    if(upload is error){
-        return upload;
-    }
+    byte[] bytes = check io:fileReadBytes(LICENSE_PATH + "/" + textFile);
+    string? savedname = saveBlob(textFile, bytes);
+
     error? removeLicense = file:remove(LICENSE_PATH + "/" + textFile);
-    if(removeLicense is error){
+    if removeLicense is error {
         log:printError("Error in deleting license file");
     }
-    return;
-}
 
-// upload license file to azure storage
-isolated function uploadLicenseFile(string name) returns error?{
-    error? container = checkContainer("container-2");
-    if(container is error){
-        return container;
+    if savedname is string {
+        _ = updatePackLicense(packName + "-" + packVersion + ".zip", savedname);
+        log:printInfo("License file is saved");
+        return;
+    } else {
+        log:printError("Failed to save license file");
+        return error("Failed to save license file");
     }
 
-    byte[] bytes = check io:fileReadBytes(LICENSE_PATH + "/" + name);
-    _ = check blobClient->putBlob("container-2", name , "BlockBlob", bytes);
-    return;
 }
 
 
@@ -93,9 +88,9 @@ isolated function process(io:ReadableCharacterChannel sc, io:WritableCharacterCh
     string header = "";
     while (true) {
         result = sc.read(1000);
-        if (result is io:EofError) {
+        if result is io:EofError {
             break;
-        } else if (result is error) {
+        } else if result is error {
             return result;
         } else {
             header = header + result;
@@ -117,10 +112,9 @@ isolated function getLibraryString(json[] libraries) returns string|error {
     foreach  json libraryData in libraries {
         string name = (check libraryData.libFilename).toString();
         string Type = (check libraryData.libType).toString();
-        log:printInfo(name+" : "+Type);
         json | error licenseID = libraryData.libLicenseID;
         string license = "UNDEFINED";
-        if (licenseID is json) {
+        if licenseID is json {
             json[] Ids = <json[]>licenseID;
             //find license key
             license = getCombinedLicenseKey(Ids);
@@ -140,10 +134,10 @@ isolated function getLicenseDetails(json[] libraries) returns (string) {
     string licenseText = "\n\nThe license types used by the above libraries and their information is given below:\n\n";
     foreach json libraryData in libraries {
         json | error licenseID = libraryData.libLicenseID;
-        if (licenseID is json) {
+        if licenseID is json {
             json[] Ids = <json[]>licenseID;
             foreach var id in Ids {
-                if (licenseIds.indexOf(<int>id) is int) {
+                if licenseIds.indexOf(<int>id) is int {
 
                 } else {
                     licenseIds[licenseIds.length()] = <int>id;
@@ -169,8 +163,10 @@ isolated function updatePackLicense(string packName, string packLicense) returns
     sql:ParameterizedQuery query = `UPDATE LM_PROCESSING_PACK SET PACK_LICENSE=${packLicense} WHERE PACK_NAME=${packName}`;
     sql:ExecutionResult|error executionResult = mysqlEp->execute(sqlQuery = query);
 
-    if(executionResult is sql:ExecutionResult){
+    if executionResult is sql:ExecutionResult {
         return true;
+    } else { 
+        log:printInfo("Error in updating license file", executionResult);
     }
 
     return false;
@@ -179,14 +175,14 @@ isolated function updatePackLicense(string packName, string packLicense) returns
 
 isolated function closeRc(io:ReadableCharacterChannel ch) {
     var cr = ch.close();
-    if (cr is error) {
+    if cr is error {
         log:printError("Error occurred while closing the channel: ", cr);
     }
 }
 
 isolated function closeWc(io:WritableCharacterChannel ch) {
     var cr = ch.close();
-    if (cr is error) {
+    if cr is error {
         log:printError("Error occurred while closing the channel: ", cr);
     }
 }
@@ -197,7 +193,7 @@ isolated function getLicenseDto(int id) returns (string[]) {
     sql:ParameterizedQuery query = `SELECT * FROM LM_LICENSE WHERE LIC_ID=${id}`;
     stream<License, error?> queryResponse = mysqlEp->query(query);
 
-    if (queryResponse is stream<License>) {
+    if queryResponse is stream<License> {
             foreach License row in queryResponse {
                 licenseDto[0] = <string>row.LIC_KEY;
                 licenseDto[1] = <string>row.LIC_NAME;
@@ -211,7 +207,7 @@ isolated function getLicenseDto(int id) returns (string[]) {
 isolated function getCombinedLicenseKey(json[] licenseIds) returns (string) {
     string combinedLicenseKey = getLicenseDto(<int>licenseIds[0])[0];
     int length = licenseIds.length() - 1;
-    while (length > 0) {
+    while length > 0 {
         combinedLicenseKey = combinedLicenseKey.concat(" + ", getLicenseDto(<int>licenseIds[length])[0]);
         length = length - 1;
     }

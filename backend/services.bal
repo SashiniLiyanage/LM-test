@@ -3,7 +3,6 @@ import ballerinax/mysql.driver as _;
 import ballerina/http;
 import ballerinax/azure_storage_service.blobs as azure_blobs;
 import ballerina/jballerina.java;
-import ballerina/regex;
 import ballerina/io;
 
 // database configurations
@@ -79,8 +78,8 @@ service / on new http:Listener(9096) {
         if returnedResponse is json {
             Success res = {body: returnedResponse};
             return res;
-        }else{
-            InternalServerError res ={ body: "Error: An internal error occurred"};
+        } else {
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
     
@@ -94,61 +93,62 @@ service / on new http:Listener(9096) {
         json|error licKey = payload.licKey;
         json|error licCategory = payload.licCategory;
         
-        if(licName is string && licUrl is string && licKey is string && licCategory is string && licId is int){
+        if (licName is string && licUrl is string && licKey is string && licCategory is string && licId is int) {
 
-            boolean success = updateLicense(licName,licKey,licUrl,licCategory, licId);
+            boolean success = updateLicense(licName, licKey, licUrl, licCategory, licId);
 
-            if(success){
+            if success {
                 Success res = {body: "success"};
                 return res;
             }
 
-            InternalServerError res ={ body:"Error: An internal error occurred"};
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
 
-        }else{
-            BadRequest res ={ body:"Incorrect payload format"};
+        } else {
+            BadRequest res = {body: "Incorrect payload format"};
             return res;
         }
     
     }
 
-    resource function post addLicense(@http:Payload json payload) returns Success|BadRequest|InternalServerError {
+    resource function post addLicense(@http:Payload json payload) 
+        returns Success|BadRequest|InternalServerError {
 
-            json|error licName = payload.licName;
-            json|error licUrl = payload.licUrl;
-            json|error licKey = payload.licKey;
-            json|error licCategory = payload.licCategory;
-            
-            if(licName is string && licUrl is string && licKey is string && licCategory is string){
+        json|error licName = payload.licName;
+        json|error licUrl = payload.licUrl;
+        json|error licKey = payload.licKey;
+        json|error licCategory = payload.licCategory;
+        
+        if (licName is string && licUrl is string && licKey is string && licCategory is string) {
 
-                boolean success = addNewLicense(licName,licKey,licUrl,licCategory);
+            boolean success = addNewLicense(licName, licKey, licUrl, licCategory);
 
-                if(success){
-                    Success res = {body: "Success"};
-                    return res;
-                }
-
-                InternalServerError res ={ body:"Error: An internal error occurred"};
+            if success {
+                Success res = {body: "Success"};
                 return res;
+            }
 
-            }else{
-                BadRequest res ={ body:"Incorrect payload format"};
-                return res;   
-            }    
+            InternalServerError res = {body: "Error: An internal error occurred"};
+            return res;
+
+        } else {
+            BadRequest res = {body: "Incorrect payload format"};
+            return res;   
+        }    
     }
 
-    resource function get checkLicense/[string licName]/[string licKey]() returns Success|BadRequest|InternalServerError|error {
+    resource function get checkLicense/[string licName]/[string licKey]() 
+        returns Success|BadRequest|InternalServerError|error {
 
         boolean? exists = checkLicenseExists(licName, licKey);
 
         if (exists is boolean) {            
-            Success res = {body:{
-                exists: exists
-            }};
+            Success res = {body: {exists: exists}};
             return res;
-        }else{
-            InternalServerError res ={ body:"Error: An internal error occurred"};
+
+        } else {
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
 
@@ -156,50 +156,49 @@ service / on new http:Listener(9096) {
 
     resource function post requestLicense(@http:Payload json payload) returns Success|BadRequest|InternalServerError {
 
-            json|error licName = payload.licName;
-            json|error licUrl = payload.licUrl;
-            json|error licKey = payload.licKey;
-            json|error licCategory = payload.licCategory;
-            json|error licReason = payload.licReason;
-            json|error licRequester = payload.licRequester;
-            
-            if(licName is string && licUrl is string && licKey is string && licCategory is string &&
-             licReason is string && licRequester is string){
+        json|error licName = payload.licName;
+        json|error licUrl = payload.licUrl;
+        json|error licKey = payload.licKey;
+        json|error licCategory = payload.licCategory;
+        json|error licReason = payload.licReason;
+        
+        if (licName is string && licUrl is string && licKey is string && licCategory is string 
+            && licReason is string) {
 
-                boolean success = addNewLicenseRequest(licName,licKey,licUrl,licCategory,licReason, licRequester);
+            boolean success = addNewLicenseRequest(licName, licKey, licUrl, licCategory, licReason);
 
-                if(success){
-                    Success res = {body: "Success"};
-                    return res;
-                }
-
-                InternalServerError res ={ body:"Error: An internal error occurred"};
+            if success {
+                Success res = {body: "Success"};
                 return res;
+            }
 
-            }else{
-                BadRequest res ={ body:"Incorrect payload format"};
-                return res;   
-            }    
+            InternalServerError res = {body: "Error: An internal error occurred"};
+            return res;
+
+        } else {
+            BadRequest res = {body: "Incorrect payload format"};
+            return res;   
+        }    
     }
 
     resource function post approveLicense(@http:Payload json payload) returns Success|BadRequest|InternalServerError {
 
             json|error licId = payload.licId;
             
-            if(licId is int){
+            if (licId is int) {
 
                 boolean success = approveLicenseRequest(licId);
 
-                if(success){
+                if success {
                     Success res = {body: "Success"};
                     return res;
                 }
 
-                InternalServerError res ={ body:"Error: An internal error occurred"};
+                InternalServerError res = {body: "Error: An internal error occurred"};
                 return res;
 
-            }else{
-                BadRequest res ={ body:"Incorrect payload format"};
+            } else {
+                BadRequest res = {body: "Incorrect payload format"};
                 return res;   
             }    
     }
@@ -208,20 +207,20 @@ service / on new http:Listener(9096) {
 
             json|error licId = payload.licId;
             
-            if(licId is int){
+            if (licId is int) {
 
                 boolean success = deleteLicenseRequest(licId);
 
-                if(success){
+                if success {
                     Success res = {body: "Success"};
                     return res;
                 }
 
-                InternalServerError res ={ body:"Error: An internal error occurred"};
+                InternalServerError res = {body: "Error: An internal error occurred"};
                 return res;
 
-            }else{
-                BadRequest res ={ body:"Incorrect payload format"};
+            } else {
+                BadRequest res = {body: "Incorrect payload format"};
                 return res;   
             }    
     }
@@ -233,8 +232,9 @@ service / on new http:Listener(9096) {
         if returnedResponse is json {
             Success res = {body: returnedResponse};
             return res;
-        }else{
-            InternalServerError res ={ body: "Error: An internal error occurred"};
+
+        } else {
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
     
@@ -247,21 +247,24 @@ service / on new http:Listener(9096) {
         if returnedResponse is json{
             Success res = {body: returnedResponse};
             return res;
-        }else{
-            InternalServerError res ={ body: "Error: An internal error occurred"};
+
+        } else {
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
     }
 
     // searches libraries by a keyword and returns requested page, the page size is fixed
     resource function get getLibraries(int page,string query) returns Success|InternalServerError {
+
         json| error? returnedResponse = getLibraries(page, LIBRARIES_PAGE_SIZE, query);
         
         if returnedResponse is json{
             Success res = {body: returnedResponse};
             return res;
-        }else{
-            InternalServerError res ={ body: "Error: An internal error occurred"};
+
+        } else {
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
     }
@@ -271,19 +274,19 @@ service / on new http:Listener(9096) {
             json|error licenses = payload.ids;
             json|error libId = payload.libId;
             
-            if(libId is int && licenses is json[]){
+            if (libId is int && licenses is json[]) {
                 boolean success = updateLibrary(licenses,libId);
 
-                if(success){
-                    Success res ={ body: "Success"};
+                if success {
+                    Success res = {body: "Success"};
                     return res; 
                 }
 
-                InternalServerError res ={body: "Error: An internal error occurred"};
+                InternalServerError res = {body: "Error: An internal error occurred"};
                 return res;
 
-            }else{
-                BadRequest res ={ body: "Incorrect payload format"};
+            } else {
+                BadRequest res = {body: "Incorrect payload format"};
                 return res;   
             }
 
@@ -297,106 +300,37 @@ service / on new http:Listener(9096) {
             json|error libType = payload.libType;
             json|error licenses = payload.libLicenseID;
             
-            if(libName is string && libType is string && licenses is json[]){
+            if (libName is string && libType is string && licenses is json[]) {
 
-                boolean success = addNewLibrary(libName,libType,licenses);
+                boolean success = addNewLibrary(libName, libType, licenses);
 
-                if(success){
+                if success {
                     Success res = {body: "Success"};
                     return res;
                 }
 
-                InternalServerError res ={ body:"Error: An internal error occurred"};
+                InternalServerError res = {body: "Error: An internal error occurred"};
                 return res;
 
-            }else{
-                BadRequest res ={ body:"Incorrect payload format"};
+            } else {
+                BadRequest res = {body: "Incorrect payload format"};
                 return res;   
             }    
     
     }
 
-    resource function get checkPackv0/[string packName]() returns Success|BadRequest|InternalServerError|error {
-
-        string? nameVar = java:toString(getName(java:fromString( packName)));
-        string? versionVar = java:toString(getVersion(java:fromString( packName)));
-        
-        string _name = "";
-        if (nameVar is string) {
-            _name = nameVar;
-        }
-        string _version = "";
-        if (versionVar is string) {
-            _version = versionVar;
-        }
-        
-        string FileName = _name + "-" + _version + ".zip";
-        boolean? exists = checkPack(FileName);
-        error? container = checkContainer("container-1");
-
-        if (exists is boolean && !(container is error)) {
-
-            if (exists) {
-                Success res = {body:{
-                    exists: true
-                }};
-                return res;
-
-            } else {
-                string sasToken = java:toString(generateSas(java:fromString(ACCOUNT_NAME),java:fromString(ACCESS_KEY_OR_SAS))) ?: "";
-                string randomName = getRandompackName();
-                
-                Success res = {body: {
-                    exists: false,
-                    accountName: ACCOUNT_NAME,
-                    sasToken: sasToken,
-                    randomName: randomName,
-                    fileName: FileName,
-                    containerName: "container-1"
-                }};
-                return res;
-            }
-
-        }else{
-            InternalServerError res ={ body:"Error: An internal error occurred"};
-            return res;
-        }
-
-    }
-
-    resource function post receiverv0(@http:Payload json payload) returns Success|BadRequest|InternalServerError|error {
-
-        json| error randomName = payload.randomName;
-        json| error name = payload.name;
-
-        if(randomName is string && name is string){
-
-            boolean updated = addPackStatus(name, randomName);
-
-            if (updated) {
-                Success res = {body: "uploaded successfully"};
-                return res;
-            }else{
-                InternalServerError res ={ body: "Error: An internal error occurred"};
-                return res;
-            }
-
-        }else{
-            BadRequest res = { body: "Payload is not in correct format"};
-            return res;
-        }
-            
-    }
-
     resource function get getPackstatus() returns Success|BadRequest|InternalServerError {
 
+        _ = updateInterruptedPackStatus();
+        
         json|error? returnedResponse = getPackstatus();
 
         if returnedResponse is json {
             Success res = {body: returnedResponse};
             return res;
+
         } else {
-            InternalServerError res ={ body:"Error: An internal error occurred"};
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
 
@@ -409,22 +343,9 @@ service / on new http:Listener(9096) {
         if returnedResponse is json {
             Success res = {body: returnedResponse};
             return res;
+
         } else {
-            InternalServerError res ={ body:"Error: An internal error occurred"};
-            return res;
-        }
-
-    }
-
-    resource function get processAllPacks() returns Success|BadRequest|InternalServerError|error {
-
-        boolean success = processAllPack();
-
-        if (success) {
-            Success res = {body: ()};
-            return res;
-        } else {
-            InternalServerError res ={ body:"Error: An internal error occurred"};
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
 
@@ -432,53 +353,51 @@ service / on new http:Listener(9096) {
 
     resource function post deletePack/[string packName]() returns Success|BadRequest|InternalServerError|error {
 
-        boolean success = deletePack(packName, "");
+        boolean success = deletePack(packName);
 
-        if (success) {
+        if success {
             Success res = {body: "successfully deleted"};
             return res;
+
         } else {
-            InternalServerError res ={ body:"Error: An internal error occurred"};
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
     }
 
-    resource function get getDownloadingText/[ string fileName]() returns BadRequest|http:Response {
+    resource function get getDownloadingText/[ string packName]() returns BadRequest|http:Response {
 
-        string licenseFileName = regex:replace(fileName, ".zip", ".txt");
+        string licenseFileName = getLicenseFileName(packName);
         azure_blobs:BlobResult| error result = blobClient->getBlob("container-2", licenseFileName);
 
         if result is error {
-            BadRequest response = {
-                body: "file does not exist!"
-            };
+            BadRequest response = {body: "file does not exist!"};
             return response;
         }
 
-        _ = saveBlob(licenseFileName, result.blobContent);
-        _ = deletePack(fileName, licenseFileName);
-       
+        _ = deletePack(packName);
+
         http:Response response = new;
         response.statusCode = 200;
         response.setBinaryPayload(result.blobContent);
+
         return response;
-        
+
     }
 
      resource function get getBlobFile/[ string fileName]() returns BadRequest|http:Response {
 
-        azure_blobs:BlobResult| error result = blobClient->getBlob("container-3", fileName);
+        azure_blobs:BlobResult| error result = blobClient->getBlob("container-2", fileName);
 
         if result is error {
-            BadRequest response = {
-                body: "file does not exist!"
-            };
+            BadRequest response = {body: "file does not exist!"};
             return response;
         }
        
         http:Response response = new;
         response.statusCode = 200;
         response.setBinaryPayload(result.blobContent);
+
         return response;
         
     }
@@ -501,7 +420,8 @@ service / on new http:Listener(9096) {
         
     }
 
-    resource function post addLibraryRequest/[string packName](@http:Payload json payload) returns Success|InternalServerError|BadRequest{
+    resource function post addLibraryRequest/[string packName](@http:Payload json payload)
+        returns Success|InternalServerError|BadRequest{
         
         json| error libFilename = payload.libFilename;
         json| error libLicenseID = payload.libLicenseID;
@@ -509,46 +429,39 @@ service / on new http:Listener(9096) {
         json| error libLicenseURL = payload.libLicenseURL;
         json| error comment = payload.comment;
 
-        if(libFilename is string && libType is string && libLicenseID is json[] && comment is string && libLicenseURL is string){
-            boolean success = addNewLibraryRequest(packName, libFilename,libType, libLicenseID, libLicenseURL, comment);
+        if (libFilename is string && libType is string && libLicenseID is json[] && comment is string 
+            && libLicenseURL is string) {
 
-            if (success) {
+            boolean success = addNewLibraryRequest(packName, libFilename, libType, libLicenseID, libLicenseURL, comment);
+
+            if success {
                 Success res = {body: ()};
-            return res;
+                return res;
+
             } else {
-                InternalServerError res ={ body:"Error: An internal error occurred"};
+                InternalServerError res = {body: "Error: An internal error occurred"};
                 return res;
             }
 
-        }else{
-            BadRequest res = { body: "Payload is not in correct format"};
+        } else {
+            BadRequest res = {body: "Payload is not in correct format"};
             return res;
         }
     }
 
-    resource function post addLibraryLicense/[string packName](@http:Payload json payload) returns Success|InternalServerError{
+    resource function post addLibraryLicense/[string packName](@http:Payload json payload)
+        returns Success|InternalServerError{
         
         boolean success = addLibraryLicense(payload, packName);
         
-        if (success) {
+        if success {
             Success res = {body: ()};
             return res;
+
         } else {
-            InternalServerError res ={ body:"Error: An internal error occurred"};
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
-    }
-
-    resource function get deleteData() returns error?{
-
-        azure_blobs:ListContainerResult result = check blobClient->listContainers();
-        azure_blobs:Container[] containers = result.containerList;
-        foreach azure_blobs:Container item in containers {
-             _ = check managementClient->deleteContainer(item.Name);
-        }
-
-        return;
-        
     }
 
     resource function get checkPack/[string packName]() returns Success|BadRequest|InternalServerError|error {
@@ -558,31 +471,19 @@ service / on new http:Listener(9096) {
         
         string FileName = _name + "-" + _version + ".zip";
         boolean? exists = checkPack(FileName);
-        error? container = checkContainer("container-1");
 
-        if (exists is boolean && !(container is error)) {
+        if exists is boolean {
+            Success res = {body:{exists: exists}};
+            return res;
 
-            if (exists) {
-                Success res = {body:{
-                    exists: true
-                }};
-                return res;
-
-            } else {
-                Success res = {body:{
-                    exists: false
-                }};
-                return res;
-            }
-
-        }else{
-            InternalServerError res ={ body:"Error: An internal error occurred"};
+        } else {
+            InternalServerError res = {body: "Error: An internal error occurred"};
             return res;
         }
 
     }
 
-    resource function post receiver/[string packName](http:Request request) returns Success|BadRequest|InternalServerError {
+    resource function post receiver/[string packName](http:Request request, http:Caller caller) returns error? {
 
         string _name = java:toString(getName(java:fromString( packName))) ?: "";
         string _version = java:toString(getVersion(java:fromString( packName))) ?: "";
@@ -590,24 +491,27 @@ service / on new http:Listener(9096) {
         string fileName = _name + "-" + _version + ".zip";
         string randomName = getRandompackName();
 
-        
         stream<byte[], io:Error?>|error streamer = request.getByteStream();
 
-        if(streamer is stream<byte[], error?>){
-            
-            boolean saved = uploadPack(streamer, randomName);
-            boolean updated = addPackStatus(fileName, randomName);
+        if (streamer is stream<byte[], error?>) {
 
-            if(saved && updated){
-               Success res = {body: "uploaded successfully"};
-                return res;
-            }else{
-                InternalServerError res ={ body: "Error: An internal error occurred"};
-                return res;
+            string filePath = FILE_PATH + "/" + randomName + ".zip";
+            error? saveTempFile = io:fileWriteBlocksFromStream( filePath, streamer);
+            
+            if (saveTempFile is error) {
+                return saveTempFile;
             }
+
+            http:Response response = new;
+            response.statusCode = 200;
+            response.setPayload("Pack processing will start in a minute");
+            check caller->respond(response);
+
+            _ = addPackStatus(fileName , randomName);
+            _ = processPack(fileName , randomName);
+            
         }else{
-            BadRequest res = { body: "Payload is not in correct format"};
-            return res;
+            return streamer;
         }
             
     }
