@@ -117,6 +117,7 @@ isolated function getLibraryString(json[] libraries) returns string|error {
     foreach  json libraryData in libraries {
         string name = (check libraryData.libFilename).toString();
         string Type = (check libraryData.libType).toString();
+        log:printInfo(name+" : "+Type);
         json | error licenseID = libraryData.libLicenseID;
         string license = "UNDEFINED";
         if (licenseID is json) {

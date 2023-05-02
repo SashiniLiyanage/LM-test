@@ -185,6 +185,44 @@ paths:
             text/plain:
               schema:
                 type: string
+  /checkPackv0/{packName}:
+    get:
+      operationId: getCheckpackv0Packname
+      parameters:
+      - name: packName
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Ok
+        "400":
+          description: BadRequest
+        "500":
+          description: Found unexpected output
+          content:
+            text/plain:
+              schema:
+                type: string
+  /receiverv0:
+    post:
+      operationId: postReceiverv0
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        "200":
+          description: Ok
+        "400":
+          description: BadRequest
+        "500":
+          description: Found unexpected output
+          content:
+            text/plain:
+              schema:
+                type: string
   /getPackstatus:
     get:
       operationId: getGetpackstatus

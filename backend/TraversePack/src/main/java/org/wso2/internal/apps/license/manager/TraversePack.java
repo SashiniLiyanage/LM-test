@@ -36,6 +36,7 @@ public class TraversePack {
             }
             return extractedName;
         }catch(Exception e){
+                System.out.println("Error getting name: "+product+" error: "+e.getMessage());
                 return "";
         }
     }
@@ -57,16 +58,17 @@ public class TraversePack {
             }
             return extractedVersion;
         }catch(Exception e){
+            System.out.println("Error getting version: "+product+" error: "+e.getMessage());
             return "";
         }
     }
     /**
      * Creates a json string for the pack.
-     * @param path : path to the pack.
+     * @param randomName : random pack name.
      */
-    public static String getJsonString(String path, String sourcePath, String destinationPath, String fileName) {
-        String extractedFilePath = destinationPath + File.separator + path;
-        String source = sourcePath + File.separator + path + ".zip";
+    public static String getJsonString(String randomName, String sourcePath, String destinationPath, String fileName) {
+        String extractedFilePath = destinationPath + File.separator + randomName;
+        String source = sourcePath + File.separator + randomName + ".zip";
         try{
             String jsonString = "";
             String packName = getName(fileName.replace(".zip",""));
@@ -76,19 +78,16 @@ public class TraversePack {
             File destination = new File(extractedFilePath);
             destination.mkdir();
             
-            path = destination.getAbsolutePath() + File.separator + fileName.replace(".zip","");
+            String unzipPath = destination.getAbsolutePath() + File.separator + fileName.replace(".zip","");
 
-            LicenseManagerUtils.unzip(source, path);
-           
-            // delete the source zip file after extracting it
-            LicenseManagerUtils.deleteFolder(source);
-
-            // path = destination.getAbsolutePath() + File.separator + fileName.replace(".zip","");
+            LicenseManagerUtils.unzip(source, unzipPath);
 
             String uuid = UUID.randomUUID().toString();
-            String tempFolderToHoldJars = new File(path).getParent() + File.separator + uuid;
-            String jsonlibrary = getjsonLiraryString(path, tempFolderToHoldJars);
+            String tempFolderToHoldJars = new File(unzipPath).getParent() + File.separator + uuid;
+            String jsonlibrary = getjsonLiraryString(unzipPath, tempFolderToHoldJars);
 
+            // delete the source zip file after extracting it
+            LicenseManagerUtils.deleteFolder(source);
             // delete the extracted file after getting json string
             LicenseManagerUtils.deleteFolder(extractedFilePath);
 
@@ -130,6 +129,7 @@ public class TraversePack {
                     manifest = new java.util.jar.JarFile(fileToBeExtracted).getManifest();
                 } catch (IOException e) {
                     //do nothing
+                    System.out.println("Error in getting manifest :"+e.getMessage());
                 }
                 String name = getName(fileToBeExtracted.getName());
                 String version = getVersion(fileToBeExtracted.getName());
@@ -144,6 +144,8 @@ public class TraversePack {
                     groupID = getGroupID(manifest);
                 }
 
+                System.out.println("Path: "+ fileToBeExtracted.getAbsolutePath());
+
                 if (!(jsonlibrary.contains(name+"_"+version+".jar") || jsonlibrary.contains(name+"-"+version+".jar") ||
                         jsonlibrary.contains(name+"_"+version+".mar") || jsonlibrary.contains(name+"-"+version+".mar"))) {
                     jsonlibrary += "{\"libName\":\"" + name + "\"," +
@@ -151,6 +153,8 @@ public class TraversePack {
                             "\"libFilename\":\"" + fileToBeExtracted.getName() + "\"," +
                             "\"libType\":\"" + type + "\"," +
                             "\"libLicense\":" + license +"},";
+
+                    System.out.println("Added to json -> "+name+"-"+version+" : "+license);
                 }
                 if (checkInnerJars(fileToBeExtracted.getAbsolutePath())) {
                     extractTo = new File(tempFolderToHoldJars + fileToBeExtracted.getName());
@@ -173,7 +177,7 @@ public class TraversePack {
             return jsonlibrary;
             
         }catch(Exception e){
-            System.out.println(e.getMessage());
+            System.out.println("Error in getjsonLiraryString: "+e.getMessage());
             throw(e);
         }
     }
@@ -270,7 +274,7 @@ public class TraversePack {
                 }
             }
         } catch (IOException e) {
-            //do nothing
+            System.out.println("Error in checkInnerJars: "+filePath+" Error:"+e.getMessage());
         }
         return containsJars;
     }

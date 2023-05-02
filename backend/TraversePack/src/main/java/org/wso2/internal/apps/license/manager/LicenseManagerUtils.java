@@ -61,6 +61,7 @@ public class LicenseManagerUtils {
                 // }
             }
         } catch (IOException e) {
+            System.out.println("Error in unziping: "+infile+" Error:"+e.getMessage());
             throw(e);
         }
     }

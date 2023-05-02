@@ -152,11 +152,11 @@ isolated  function downloadFile(string blobName, string containerName) returns e
 
 }
 
-isolated function getDataJson(string path, string packName) returns json|error {
+isolated function getDataJson(string randomName, string packName) returns json|error {
 
 
     log:printInfo("Downloading the file... ");
-    error? file = downloadFile(path +".zip", "container-1" );
+    error? file = downloadFile(randomName +".zip", "container-1" );
 
     if(file is error){
         log:printError("Download failed ", file);
@@ -166,7 +166,7 @@ isolated function getDataJson(string path, string packName) returns json|error {
     }
 
     json jsonEmpty = {};
-    var jsonVar = getJsonString(java:fromString(path),java:fromString(FILE_PATH),java:fromString(PROCESSING_PATH), java:fromString(packName));
+    var jsonVar = getJsonString(java:fromString(randomName),java:fromString(FILE_PATH),java:fromString(PROCESSING_PATH), java:fromString(packName));
     string? jsonString = java:toString(jsonVar);
 
     if jsonString is string {
@@ -377,6 +377,8 @@ isolated function uploadPack(stream<byte[], io:Error?> streamer, string randomNa
     if(putBlobResult is error){
         log:printError("Failed to save the pack");
         return false;
+    }else{
+        log:printInfo("Pack is saved");
     }
 
     error? removeTempFile = file:remove(filePath);
